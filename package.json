@@ -1,0 +1,23 @@
+{
+  "name": "realmail",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Team-10-COEN-ELEC-390-Summer-2025/RealMail.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Team-10-COEN-ELEC-390-Summer-2025/RealMail/issues"
+  },
+  "homepage": "https://github.com/Team-10-COEN-ELEC-390-Summer-2025/RealMail#readme",
+  "dependencies": {
+    "axios": "^1.10.0",
+    "onoff": "^6.0.3"
+  }
+}
