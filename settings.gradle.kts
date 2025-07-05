@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Real Mail"
-include ':app'
+rootProject.name = "RealMail"
+include(":app")
