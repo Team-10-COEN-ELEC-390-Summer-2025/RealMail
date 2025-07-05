@@ -7,12 +7,13 @@ Open your VSCode terminal and write the following dependencies:
 ```bash
 npm install
 npm install onoff axios
+sudo node pir.js
 ```
 
 Install the following extension to VS Code:
 Remote - SSH
 
-Install Raspberry Pi OS https://www.raspberrypi.com/
+Install Raspberry Pi OS onto your computer https://www.raspberrypi.com/
 1. From the installation menu, do the following:
     Raspberry Pi Device: RASPBERRY PI ZERO
     Operating System: Raspberry Pi OS (Debian Bullseye)
@@ -26,4 +27,6 @@ Install Raspberry Pi OS https://www.raspberrypi.com/
     Configure Wireless LAN:
         Enter your home Wi-Fi credentials.
 
-3. Run Configuration
+3. Insert the micro SD card onto the Raspberry Pi.
+
+4. Run the installation.
