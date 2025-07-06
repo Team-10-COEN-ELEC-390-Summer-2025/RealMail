@@ -58,7 +58,8 @@
         android:layout_height="50dp"
         android:layout_gravity="center"
         android:background="@color/white"
-        android:hint="Enter your password"/>
+        android:hint="Enter your password"
+        android:password="true"/>
 
     <Button
         android:id="@+id/signin"

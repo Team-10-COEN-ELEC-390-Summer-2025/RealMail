@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private void signIn(){
         auth = FirebaseAuth.getInstance();
 
+        //extract the email & pw
         String email1 = email.getText().toString();
         String password1 = password.getText().toString();
 
