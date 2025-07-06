@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".NewAccount"
+    android:orientation="vertical"
+    android:background="@color/Brown">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:fontFamily="@font/artifika"
+        android:text="Creating New Account"
+        android:textColor="@color/orange"
+        android:textSize="25dp"
+        android:layout_marginTop="30dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="First Name:"
+        android:textColor="@color/black"
+        android:textSize="20dp"
+        android:layout_marginLeft="25dp"
+        android:layout_marginTop="30dp"/>
+
+    <EditText
+        android:layout_width="350dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:background="@color/white"
+        android:hint="Enter your first name" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Last Name"
+        android:textSize="20dp"
+        android:textColor="@color/black"
+        android:layout_marginLeft="25dp"
+        android:layout_marginTop="30dp"/>
+
+    <EditText
+        android:layout_width="350dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:background="@color/white"
+        android:hint="Enter your last name"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Email:"
+        android:textColor="@color/black"
+        android:textSize="20dp"
+        android:layout_marginLeft="25dp"
+        android:layout_marginTop="30dp"/>
+
+    <EditText
+        android:id="@+id/email"
+        android:layout_width="350dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:background="@color/white"
+        android:hint="Enter your email"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Password:"
+        android:textColor="@color/black"
+        android:textSize="20dp"
+        android:layout_marginLeft="25dp"
+        android:layout_marginTop="30dp"/>
+
+    <EditText
+        android:id="@+id/password"
+        android:layout_width="350dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:background="@color/white"
+        android:hint="Enter your password"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Confirm Password:"
+        android:textColor="@color/black"
+        android:textSize="20dp"
+        android:layout_marginLeft="25dp"
+        android:layout_marginTop="30dp"/>
+
+    <EditText
+        android:id="@+id/cpassword"
+        android:layout_width="350dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:background="@color/white"
+        android:hint="Enter your password"/>
+
+
+    <Button
+        android:id="@+id/submit"
+        android:layout_width="130dp"
+        android:layout_height="60dp"
+        android:text="Submit"
+        android:textSize="20dp"
+        android:textColor="@color/white"
+        android:layout_gravity="center"
+        android:backgroundTint="@color/orange"
+        android:layout_marginTop="40dp"
+        tools:ignore="InvalidId" />
+
+
+</LinearLayout>
