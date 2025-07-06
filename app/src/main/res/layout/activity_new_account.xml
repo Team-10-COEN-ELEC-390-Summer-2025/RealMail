@@ -83,7 +83,8 @@
         android:layout_height="50dp"
         android:layout_gravity="center"
         android:background="@color/white"
-        android:hint="Enter your password"/>
+        android:hint="Enter your password"
+        android:password="true"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -92,7 +93,7 @@
         android:textColor="@color/black"
         android:textSize="20dp"
         android:layout_marginLeft="25dp"
-        android:layout_marginTop="30dp"/>
+        android:layout_marginTop="30dp" />
 
     <EditText
         android:id="@+id/cpassword"
@@ -100,7 +101,8 @@
         android:layout_height="50dp"
         android:layout_gravity="center"
         android:background="@color/white"
-        android:hint="Enter your password"/>
+        android:hint="Enter your password"
+        android:password="true"/>
 
 
     <Button
