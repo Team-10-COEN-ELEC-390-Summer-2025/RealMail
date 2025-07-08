@@ -89,7 +89,7 @@ export const handleSensorIncomingData = onRequest(async (req, res) => {
     }
     // store data in the database.
     try {
-        pool.query(
+        await pool.query(
             `INSERT INTO sensors_data (device_id, timestamp, motion_detected, linked_user_email)
              VALUES ($1, $2, $3, $4)`,
             [
