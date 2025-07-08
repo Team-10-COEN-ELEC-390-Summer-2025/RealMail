@@ -1,4 +1,4 @@
-package com.example.realmail;
+package com.team10.realmail;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;

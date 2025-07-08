@@ -18,6 +18,8 @@
   "homepage": "https://github.com/Team-10-COEN-ELEC-390-Summer-2025/RealMail#readme",
   "dependencies": {
     "axios": "^1.10.0",
+    "firebase-admin": "^13.4.0",
+    "firebase-functions": "^6.3.2",
     "onoff": "^6.0.3"
   }
 }

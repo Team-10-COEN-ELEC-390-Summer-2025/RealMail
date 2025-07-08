@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "204949720800",
+    "project_id": "realmail-39ab4",
+    "storage_bucket": "realmail-39ab4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:204949720800:android:edfe481c6c65ca65a28a85",
+        "android_client_info": {
+          "package_name": "com.example.realmail"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJbBgsd3EI5Hn2oo_H316SQyeh53efwz0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:204949720800:android:4e77b378a2e478b6a28a85",
+        "android_client_info": {
+          "package_name": "com.team10.realmail"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJbBgsd3EI5Hn2oo_H316SQyeh53efwz0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

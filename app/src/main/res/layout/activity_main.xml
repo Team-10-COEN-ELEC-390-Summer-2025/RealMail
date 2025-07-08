@@ -40,6 +40,7 @@
         android:layout_width="350dp"
         android:layout_height="50dp"
         android:layout_gravity="center"
+        android:inputType="textEmailAddress"
         android:background="@color/white"
         android:hint="Enter your username"/>
 
@@ -58,6 +59,7 @@
         android:layout_height="50dp"
         android:layout_gravity="center"
         android:background="@color/white"
+        android:inputType="textPassword"
         android:hint="Enter your password"/>
 
     <Button
