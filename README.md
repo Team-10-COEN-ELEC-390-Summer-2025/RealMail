@@ -1,4 +1,4 @@
-xs
+
 
 
 ## RealMail 
@@ -14,6 +14,7 @@ The mail detector app, henceforth called RealMail, will detect motion and other 
 | Daran Guo               | 40127349       |
 
 ### Project Structure
+```
 RealMail/
 ├── android/                # Mobile application
 ├── backend/                # Server-side application code
@@ -25,3 +26,4 @@ RealMail/
 ├── .gitignore              # Git ignore file
 ├── LICENSE                 # Project license
 └── README.md               # Project documentation
+```
