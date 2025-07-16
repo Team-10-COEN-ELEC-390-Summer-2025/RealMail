@@ -53,6 +53,13 @@ public class MainActivity extends AppCompatActivity {
     String global_device_registration_token = "";
     private FirebaseAuth auth;
 
+    /**
+     * Initializes the main activity, sets up the user interface, requests notification permissions,
+     * creates a notification channel, and configures click listeners for sign-in, password recovery,
+     * and account creation actions.
+     *
+     * @param savedInstanceState the previously saved instance state, or null if none exists
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -93,6 +100,13 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * Attempts to sign in the user with the provided email and password using Firebase Authentication.
+     *
+     * On successful authentication, retrieves the current Firebase Cloud Messaging (FCM) registration token,
+     * sends the token and user email to a backend server asynchronously, displays a login confirmation,
+     * and navigates to the HomeActivity. On failure, displays an error message to the user.
+     */
     private void signIn() {
         auth = FirebaseAuth.getInstance();
 
@@ -127,6 +141,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Asynchronously retrieves the current Firebase Cloud Messaging (FCM) registration token and stores it in the global variable.
+     *
+     * If token retrieval fails, logs a warning with the associated exception.
+     */
     private void getDeviceRegistrationToken() {
         // This method is used to retrieve the current FCM registration token
         FirebaseMessaging.getInstance().getToken()
@@ -143,6 +162,15 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Sends the Firebase Cloud Messaging (FCM) registration token and user email to a backend server for device registration.
+     *
+     * Initiates an asynchronous request to retrieve the current FCM token, then posts the token and email as URL parameters to a cloud function endpoint. Handles network and token retrieval errors internally.
+     *
+     * @param token The FCM registration token to be sent to the server.
+     * @param email The email address of the authenticated user.
+     * @throws Exception if an unexpected error occurs during the process.
+     */
     private void sendRegistrationToServer(@NonNull String token, @NonNull String email) throws Exception {
         // send token to server via api call
         // This method should be implemented to send the FCM token to your server
@@ -191,6 +219,12 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+    /**
+     * Creates a notification channel for the app on Android API 26+ to enable notification delivery.
+     *
+     * The channel is configured with a default importance level and uses localized name and description
+     * resources. This method has no effect on devices running below API level 26.
+     */
     private void createNotificationChannel() {
         // // ref: https://developer.android.com/develop/ui/views/notifications/channels
         // Create the NotificationChannel, but only on API 26+ because
@@ -207,6 +241,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Requests the POST_NOTIFICATIONS permission from the user on Android 13 (API level 33) and above.
+     *
+     * If the permission is not already granted, this method either shows a rationale UI (if appropriate)
+     * or directly launches the permission request. Does nothing on lower API levels.
+     */
     private void askNotificationPermission() {
         // This is only necessary for API level >= 33 (TIRAMISU)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

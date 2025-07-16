@@ -18,6 +18,13 @@ import com.google.firebase.messaging.RemoteMessage;
 
 public class NewMailNotificationService extends FirebaseMessagingService {
 
+    /**
+     * Handles incoming Firebase Cloud Messaging (FCM) messages and displays a notification with the message's title and body.
+     *
+     * Extracts the notification title and body from the received RemoteMessage, creates a notification channel if required, and posts a high-priority notification to the user.
+     *
+     * @param remoteMessage the incoming FCM message containing notification data
+     */
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
@@ -53,6 +60,11 @@ public class NewMailNotificationService extends FirebaseMessagingService {
         notificationManager.notify(0, builder.build());
     }
 
+    /**
+     * Called when a new Firebase Cloud Messaging registration token is generated.
+     *
+     * @param token the newly generated FCM registration token
+     */
     @Override
     public void onNewToken(@NonNull String token) {
         Log.d("TAG", "Refreshed token: " + token);
