@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Import function triggers from their respective submodules:
  *
@@ -6,31 +7,58 @@
  *
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
-
-import { onRequest } from "firebase-functions/https";
-import * as logger from "firebase-functions/logger";
-import * as admin from 'firebase-admin';
-import { getAuth } from "firebase-admin/auth";
-import { getMessaging } from "firebase-admin/messaging";
-import 'dotenv/config'
-import { Pool } from "pg";
-
-
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.newDataNotification = exports.getDeviceRegistrationToken = exports.verifyToken = exports.handleSensorIncomingData = exports.handleFirebaseJWT = void 0;
+const https_1 = require("firebase-functions/https");
+const logger = __importStar(require("firebase-functions/logger"));
+const admin = __importStar(require("firebase-admin"));
+const auth_1 = require("firebase-admin/auth");
+const messaging_1 = require("firebase-admin/messaging");
+require("dotenv/config");
+const pg_1 = require("pg");
 console.log("Creating new database connection pool.");
 console.log("DB_NAME:", process.env.DB_NAME); // Add this for debugging
-
-const pool = new Pool({
+const pool = new pg_1.Pool({
     user: process.env.DB_USER,
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
     port: 5432,
 });
-
-
 admin.initializeApp();
-
-
 // https://firebase.google.com/docs/functions/tips
 /*
 onInit( async () => {
@@ -51,23 +79,19 @@ onInit( async () => {
     }
 });
 */
-
 // a dummy function to test the http
-export const handleFirebaseJWT = onRequest((req, res) => {
+exports.handleFirebaseJWT = (0, https_1.onRequest)((req, res) => {
     logger.info("Received request", { method: req.method, url: req.url });
-
     // Simulate some processing
     setTimeout(() => {
         res.status(200).send("Hello from Firebase JWT handler!");
         logger.info("Response sent successfully");
     }, 1000);
-
     // Log the request body if present
     if (req.body) {
         logger.debug("Request body:", req.body);
     }
 });
-
 /**
  * Handles incoming sensor data from devices.
  * Validates the request and stores the data in the database.
@@ -75,7 +99,7 @@ export const handleFirebaseJWT = onRequest((req, res) => {
  * @param req - The HTTP request object
  * @param res - The HTTP response object
  */
-export const handleSensorIncomingData = onRequest(async (req, res) => {
+exports.handleSensorIncomingData = (0, https_1.onRequest)(async (req, res) => {
     logger.info("Received sensor data", { method: req.method, url: req.url });
     if (req.method !== "POST") {
         res.status(405).send("Method Not Allowed");
@@ -99,17 +123,17 @@ export const handleSensorIncomingData = onRequest(async (req, res) => {
         await pool.query(`INSERT INTO public.sensors_data (device_id, timestamp, motion_detected, linked_user_email)
                     VALUES ($1, $2, $3,
                             $4)`, [sensorData.device_id, sensorData.timeStamp, sensorData.motion_detected, sensorData.user_email,]);
-    } catch (error) {
+    }
+    catch (error) {
         logger.error("Database insertion failed", { data: sensorData });
         res.status(500).send("Internal Server Error: Failed to store sensor data");
         return;
     }
-
     // once sensor data is stored, send notification to the app
     try {
         const response = await fetch(process.env.SERVER_URL + "/newDataNotification", {
-            method: "POST", 
-            headers: { "Content-Type": "application/json" }, 
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 device_id: sensorData.device_id,
                 timeStamp: sensorData.timeStamp,
@@ -119,29 +143,25 @@ export const handleSensorIncomingData = onRequest(async (req, res) => {
         });
         const data = await response.json();
         console.log("Notification response:", data);
-
-    } catch (error) {
+    }
+    catch (error) {
         logger.error("Error sending notification", { error: error instanceof Error ? error.message : String(error) });
         res.status(500).send("Internal Server Error: Failed to send notification");
         return;
     }
-
 });
-
 // handle JWT authentication token from Android app
 // https://firebase.google.com/docs/auth/admin/manage-users
 // https://firebase.google.com/docs/cloud-messaging/send-message
-export const verifyToken = onRequest(async (req, res) => {
+exports.verifyToken = (0, https_1.onRequest)(async (req, res) => {
     logger.info("Received JWT authentication request", { method: req.method, url: req.url });
-    const jwt_token: string = req.query.token as string || req.body.token;
-    const user_uid: string = req.query.uid as string || req.body.uid;
-
+    const jwt_token = req.query.token || req.body.token;
+    const user_uid = req.query.uid || req.body.uid;
     if (req.method !== "POST") {
         logger.warn("Method not allowed", { method: req.method });
         res.status(405).send("Method Not Allowed");
         return;
     }
-
     if (!jwt_token) {
         logger.error("Missing JWT token in request");
         res.status(400).send("Bad Request: Missing JWT token");
@@ -152,50 +172,46 @@ export const verifyToken = onRequest(async (req, res) => {
         res.status(400).send("Bad Request: Missing user UID");
         return;
     }
-
     try {
-        const userRecord = await getAuth().getUser(user_uid);
+        const userRecord = await (0, auth_1.getAuth)().getUser(user_uid);
         // Corrected ON CONFLICT to use (user_uid) instead of (user_id)
         await pool.query(`INSERT INTO public.firebase_auth (user_uid, firebase_auth_email, jwt)
                           VALUES ($1, $2, $3) ON CONFLICT (user_uid) DO
         UPDATE
             SET firebase_auth_email = EXCLUDED.firebase_auth_email, jwt = EXCLUDED.jwt`, [userRecord.uid, userRecord.email, jwt_token]);
         res.status(200).send("JWT token received and saved successfully");
-    } catch (error) {
+    }
+    catch (error) {
         // Log the actual error and send a response to prevent timeout
         if (error instanceof Error) {
             logger.error("Unable to save authentication details in the db", { error: error.message, stack: error.stack });
-        } else {
+        }
+        else {
             logger.error("Unable to save authentication details in the db", { error: String(error) });
         }
         res.status(500).send("Internal Server Error");
-        return
+        return;
     }
 });
-
-
 // API to get device registration token from the app and store it in the database
-export const getDeviceRegistrationToken = onRequest(async (req, res) => {
+exports.getDeviceRegistrationToken = (0, https_1.onRequest)(async (req, res) => {
     logger.info("Received request for device registration token", { method: req.method, url: req.url });
     if (req.method !== "POST") {
-
         logger.warn("Method not allowed", { method: req.method });
         res.status(405).send("Method Not Allowed");
         return;
     }
-    const user_email: string = req.query.email as string || req.body.email;
-    const deviceRegistrationToken: string = req.query.token as string || req.body.token;
+    const user_email = req.query.email || req.body.email;
+    const deviceRegistrationToken = req.query.token || req.body.token;
     if (!user_email) {
         logger.error("Missing user email in request");
         res.status(400).send("Bad Request: Missing user email");
         return;
     }
     if (!deviceRegistrationToken) {
-
         logger.error("Missing device registration token in request");
         res.status(400).send("Bad Request: Missing device registration token");
         return;
-
     }
     // save the device registration token in the database
     try {
@@ -208,27 +224,21 @@ export const getDeviceRegistrationToken = onRequest(async (req, res) => {
         INSERT INTO public.firebase_auth (firebase_auth_email, device_registration_token)
         SELECT $1, $2
         WHERE NOT EXISTS (SELECT 1 FROM updated)`, [user_email, deviceRegistrationToken]);
-
         logger.info("Device registration token saved successfully", { user_email });
         res.status(200).send("Device registration token saved successfully");
         return;
-    } catch (error) {
+    }
+    catch (error) {
         logger.error("Error saving device registration token", { error: error instanceof Error ? error.message : String(error) });
         res.status(500).send("Internal Server Error while saving device registration token");
         return;
     }
-
-
 });
-
-
 // api for sending push notifications to the user
 // see https://firebase.google.com/docs/cloud-messaging/server
-
-export const newDataNotification = onRequest(async (req, res) => {
+exports.newDataNotification = (0, https_1.onRequest)(async (req, res) => {
     // when a new data is received from the sensor, this function will be called
     // function will send a push notification to the user(android app)
-
     /*
     based on user's email, look into the database and get the device registration token
     if device registration token is not found, return 404
@@ -240,9 +250,8 @@ export const newDataNotification = onRequest(async (req, res) => {
         "motion_detected":
         "user_email":
      */
-
     // look for user's device registration token in the database
-    let deviceRegistrationToken: string;
+    let deviceRegistrationToken;
     try {
         const result = await pool.query(`SELECT device_registration_token
                                          FROM public.firebase_auth
@@ -263,15 +272,15 @@ export const newDataNotification = onRequest(async (req, res) => {
             return;
         }
         deviceRegistrationToken = result.rows[0].device_registration_token;
-    } catch (error) {
+    }
+    catch (error) {
         logger.error("Error fetching device registration token", { error: error instanceof Error ? error.message : String(error) });
         res.status(500).send("Internal Server Error while fetching device registration token");
         return;
     }
-
     // compose json message to send to the device
     const dateOfSensorData = new Date(sensorData.timeStamp);
-    let dataInString: string;
+    let dataInString;
     if (isNaN(dateOfSensorData.getTime())) {
         dataInString = new Date().toISOString(); // if the date is invalid, use current date`
     }
@@ -292,15 +301,16 @@ export const newDataNotification = onRequest(async (req, res) => {
         // @ts-ignore
         token: deviceRegistrationToken,
     };
-
     // send message to device.
     try {
-        const response = await getMessaging().send(message);
+        const response = await (0, messaging_1.getMessaging)().send(message);
         logger.info("Successfully sent message:", response);
-    } catch (error) {
+    }
+    catch (error) {
         logger.error("Error sending message:", error);
         res.status(500).send("Failed to send notification");
         return;
     }
     res.status(200).send("Notification sent successfully");
 });
+//# sourceMappingURL=index.js.map
