@@ -1,4 +1,6 @@
 
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/Team-10-COEN-ELEC-390-Summer-2025/RealMail?utm_source=oss&utm_medium=github&utm_campaign=Team-10-COEN-ELEC-390-Summer-2025%2FRealMail&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 
 
 ## RealMail 
