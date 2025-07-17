@@ -37,6 +37,6 @@ try:
             while GPIO.input(motionPin):
                 time.sleep(0.1)
         time.sleep(0.1)
-except KeyboardInterrupt: # will execute at cntrl + C
+except KeyboardInterrupt: # will execute at ctrl + C
     GPIO.cleanup()
     print('\nSignal has been terminated.')
