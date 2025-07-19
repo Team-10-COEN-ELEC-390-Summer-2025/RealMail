@@ -76,7 +76,13 @@ public class MainActivity extends AppCompatActivity {
         // ref: https://developer.android.com/develop/ui/views/notifications/channels
         createNotificationChannel();
 
+        auth = FirebaseAuth.getInstance();
 
+        //go to home page if user is already logged in
+       /* if (auth.getCurrentUser() != null){
+            Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+            startActivity(intent);
+        }*/
 
         signIn.setOnClickListener(v -> {
             signIn();

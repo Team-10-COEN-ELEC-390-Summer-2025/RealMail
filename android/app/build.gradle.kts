@@ -33,7 +33,7 @@ android {
 }
 
 dependencies {
-
+    val fragment_version = "1.6.1"
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
@@ -44,7 +44,11 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
+    implementation("com.google.firebase:firebase-auth:22.1.2")
+    implementation("com.google.android.gms:play-services-auth:21.1.1")
+    implementation("androidx.fragment:fragment:$fragment_version")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
 }
