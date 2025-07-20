@@ -8,7 +8,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.realmail"
+        applicationId = "com.team10.realmail"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -33,7 +33,7 @@ android {
 }
 
 dependencies {
-    val fragment_version = "1.6.1"
+    val fragment_version = "1.8.8"
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
@@ -44,9 +44,9 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
-    implementation("com.google.firebase:firebase-auth:22.1.2")
-    implementation("com.google.android.gms:play-services-auth:21.1.1")
-    implementation("androidx.fragment:fragment:$fragment_version")
+    implementation("com.google.firebase:firebase-auth:23.2.1")
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
+    implementation("androidx.fragment:fragment:1.8.8")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
