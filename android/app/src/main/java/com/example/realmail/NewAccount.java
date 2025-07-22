@@ -33,7 +33,7 @@ public class NewAccount extends AppCompatActivity {
 
     @SuppressLint("MissingInflatedId")
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_new_account);
@@ -41,18 +41,15 @@ public class NewAccount extends AppCompatActivity {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
-        });
-        //firebase ojects
-        auth = FirebaseAuth.getInstance();//get instance
+        }) ;
 
-        submit = findViewById(R.id.submit);
+        auth = FirebaseAuth.getInstance();//get instance
+        submit = findViewById(R.id.button_create_account);
         email = findViewById(R.id.email);
         password = findViewById(R.id.password);
         cpassword = findViewById(R.id.cpassword);
         firstName = findViewById(R.id.firstName);
         lastName = findViewById(R.id.lastName);
-
-        //when we submit we call creat function
         submit.setOnClickListener(v -> {
             createAccount();
         });
@@ -60,20 +57,18 @@ public class NewAccount extends AppCompatActivity {
 
     private void createAccount(){
         String email1 = email.getText().toString();
-        //get email,extracting content,storing in email,pw and cpw
         String password1 = password.getText().toString();
         String cpassword1 = cpassword.getText().toString();
         String firstName1 = firstName.getText().toString();
         String lastName1 =  lastName.getText().toString();
 
-        //pw not match with cpw
         if(!password1.equals(cpassword1)){
             Toast.makeText(this, "Passwords don't match!", Toast.LENGTH_SHORT).show();
             return;
         }
-        //for creating a new account in the database
+
         auth.createUserWithEmailAndPassword(email1, password1).addOnCompleteListener(this, task -> {
-            if (task.isSuccessful()){
+            if (task.isSuccessful()) {
                 FirebaseUser user = auth.getCurrentUser();
                 database = FirebaseFirestore.getInstance();
                 String userID = user.getUid();
@@ -107,9 +102,7 @@ public class NewAccount extends AppCompatActivity {
 
     }
 
-    //saving first and last name to firebase
     private void saveInfo(){
-
 
     }
 }
