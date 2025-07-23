@@ -1,4 +1,4 @@
-package com.example.realmail;
+package com.team10.realmail;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -21,11 +21,12 @@ import com.google.android.material.tabs.TabLayout;
 
 public class HomeActivity extends AppCompatActivity {
 
-   FrameLayout frameLayout1;
-   TabLayout tablayout1;
+    FrameLayout frameLayout1;
+    TabLayout tablayout1;
 
 
     protected Toolbar toolbar;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,7 +38,7 @@ public class HomeActivity extends AppCompatActivity {
             return insets;
         });
         frameLayout1 = (FrameLayout) findViewById(R.id.framelayout); //id
-        tablayout1 = (TabLayout)  findViewById(R.id.tablayout);
+        tablayout1 = (TabLayout) findViewById(R.id.tablayout);
 
 // default fragment to the home
         getSupportFragmentManager().beginTransaction().replace(R.id.framelayout, new HomeFragment()).addToBackStack(null)
@@ -47,17 +48,17 @@ public class HomeActivity extends AppCompatActivity {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 Fragment fragment = null;
-                switch (tab.getPosition()){
+                switch (tab.getPosition()) {
                     case 0:
-                    fragment = new HomeFragment();
-                    break;
+                        fragment = new HomeFragment();
+                        break;
                     case 1:
                         fragment = new HistoryFragment();
                         break;
                 }
                 //  change the framgment what ever we change
-               getSupportFragmentManager().beginTransaction().replace(R.id.framelayout, fragment).setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
-                       .commit();
+                getSupportFragmentManager().beginTransaction().replace(R.id.framelayout, fragment).setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                        .commit();
             }
 
             @Override
@@ -86,15 +87,14 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
 
-        if(item.getItemId() == R.id.camera){
+        if (item.getItemId() == R.id.camera) {
 
         }
 
-        if(item.getItemId() == R.id.settings){
+        if (item.getItemId() == R.id.settings) {
             Intent intent = new Intent(HomeActivity.this, SettingsActivity.class);
             startActivity(intent);
         }
-
 
 
         return super.onOptionsItemSelected(item);

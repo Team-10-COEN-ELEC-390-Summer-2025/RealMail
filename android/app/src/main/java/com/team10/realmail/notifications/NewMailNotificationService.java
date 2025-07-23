@@ -1,8 +1,9 @@
-package com.example.realmail.notifications;
+package com.team10.realmail.notifications;
 /*
-    * RealMail - A simple email client for Android
-    * https://firebase.google.com/docs/cloud-messaging/android/client
+ * RealMail - A simple email client for Android
+ * https://firebase.google.com/docs/cloud-messaging/android/client
  */
+
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
@@ -12,7 +13,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
-import com.example.realmail.R;
+import com.team10.realmail.R;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 

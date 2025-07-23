@@ -1,4 +1,4 @@
-package com.example.realmail.api;
+package com.team10.realmail.api;
 
 // Request body model
 public class SensorsRequest {
