@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.team10.realmail"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -47,6 +47,8 @@ dependencies {
     implementation("com.google.firebase:firebase-auth:23.2.1")
     implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation("androidx.fragment:fragment:1.8.8")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

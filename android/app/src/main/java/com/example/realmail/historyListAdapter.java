@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
+import java.time.format.DateTimeFormatter;
 
 public class historyListAdapter extends RecyclerView.Adapter<historyListAdapter.historyViewHolder> {
 
@@ -31,15 +32,25 @@ public class historyListAdapter extends RecyclerView.Adapter<historyListAdapter.
 
     @Override
     public void onBindViewHolder(@NonNull historyListAdapter.historyViewHolder holder, int position) {
-            historyListItem item = historyList.get(position);
+        historyListItem item = historyList.get(position);
 
-            if(item.getStatus()){
-                holder.status.setText("Opened");
-            } else {
-                holder.status.setText("Closed");
+        // Always show "New Mail" for status
+        holder.status.setText("New Mail");
+
+        // Format the timestamp string to a user-friendly date
+        String time = item.getTimeOfOccurence();
+        String formattedTime = "-";
+        if (time != null && !time.isEmpty()) {
+            try {
+                java.time.Instant instant = java.time.Instant.parse(time);
+                java.time.ZonedDateTime zdt = instant.atZone(java.time.ZoneId.systemDefault());
+                java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy, hh:mm a");
+                formattedTime = formatter.format(zdt);
+            } catch (Exception e) {
+                formattedTime = time; // fallback to raw string if parsing fails
             }
-
-            holder.time_of_occurence.setText(item.getTimeOfOccurence().toString());
+        }
+        holder.time_of_occurence.setText(formattedTime);
     }
 
     @Override
@@ -47,7 +58,7 @@ public class historyListAdapter extends RecyclerView.Adapter<historyListAdapter.
         return historyList.size();
     }
 
-    static class historyViewHolder extends RecyclerView.ViewHolder{
+    static class historyViewHolder extends RecyclerView.ViewHolder {
         TextView status, time_of_occurence;
 
 
