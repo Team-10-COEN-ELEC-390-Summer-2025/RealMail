@@ -41,7 +41,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.newDataNotification = exports.getDeviceRegistrationToken = exports.verifyToken = exports.handleSensorIncomingData = exports.handleFirebaseJWT = void 0;
+exports.getSensorsWithMotionDetected = exports.newDataNotification = exports.getDeviceRegistrationToken = exports.updateSensorStatus = exports.checkSensorStatus = exports.verifyToken = exports.handleSensorIncomingData = exports.handleFirebaseJWT = void 0;
 const https_1 = require("firebase-functions/https");
 const logger = __importStar(require("firebase-functions/logger"));
 const admin = __importStar(require("firebase-admin"));
@@ -49,6 +49,7 @@ const auth_1 = require("firebase-admin/auth");
 const messaging_1 = require("firebase-admin/messaging");
 require("dotenv/config");
 const pg_1 = require("pg");
+const scheduler_1 = require("firebase-functions/v2/scheduler");
 console.log("Creating new database connection pool.");
 console.log("DB_NAME:", process.env.DB_NAME); // Add this for debugging
 const pool = new pg_1.Pool({
@@ -121,8 +122,8 @@ exports.handleSensorIncomingData = (0, https_1.onRequest)(async (req, res) => {
     // store data in the database.
     try {
         await pool.query(`INSERT INTO public.sensors_data (device_id, timestamp, motion_detected, linked_user_email)
-                    VALUES ($1, $2, $3,
-                            $4)`, [sensorData.device_id, sensorData.timeStamp, sensorData.motion_detected, sensorData.user_email,]);
+                          VALUES ($1, $2, $3,
+                                  $4)`, [sensorData.device_id, sensorData.timeStamp, sensorData.motion_detected, sensorData.user_email,]);
     }
     catch (error) {
         logger.error("Database insertion failed", { data: sensorData });
@@ -130,26 +131,50 @@ exports.handleSensorIncomingData = (0, https_1.onRequest)(async (req, res) => {
         return;
     }
     // once sensor data is stored, send notification to the app
+    // try {
+    //     const response = await fetch(process.env.SERVER_URL + "/newDataNotification", {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({
+    //             device_id: sensorData.device_id,
+    //             timeStamp: sensorData.timeStamp,
+    //             motion_detected: sensorData.motion_detected,
+    //             user_email: sensorData.user_email,
+    //         })
+    //     });
+    //     const data = await response.json();
+    //     console.log("Notification response:", data);
+    //
+    // } catch (error) {
+    //     logger.error("Error sending notification", { error: error instanceof Error ? error.message : String(error) });
+    //     res.status(500).send("Internal Server Error: Failed to send notification");
+    //     return;
+    // }
+    sendNotificationToDevice({
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+            device_id: sensorData.device_id,
+            timeStamp: sensorData.timeStamp,
+            motion_detected: sensorData.motion_detected,
+            user_email: sensorData.user_email,
+        })
+    }).then(r => {
+        // do nothing
+    });
+    // return success response
+    res.status(200).send("Sensor data received and stored successfully");
+});
+async function sendNotificationToDevice(options) {
+    // once sensor data is stored, send notification to the app
     try {
-        const response = await fetch(process.env.SERVER_URL + "/newDataNotification", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                device_id: sensorData.device_id,
-                timeStamp: sensorData.timeStamp,
-                motion_detected: sensorData.motion_detected,
-                user_email: sensorData.user_email,
-            })
-        });
+        const response = await fetch(process.env.SERVER_URL + "/newDataNotification", options);
         const data = await response.json();
         console.log("Notification response:", data);
     }
     catch (error) {
         logger.error("Error sending notification", { error: error instanceof Error ? error.message : String(error) });
-        res.status(500).send("Internal Server Error: Failed to send notification");
-        return;
     }
-});
+    return;
+}
 // handle JWT authentication token from Android app
 // https://firebase.google.com/docs/auth/admin/manage-users
 // https://firebase.google.com/docs/cloud-messaging/send-message
@@ -193,6 +218,85 @@ exports.verifyToken = (0, https_1.onRequest)(async (req, res) => {
         return;
     }
 });
+// Periodic API to check update android app about the sensor status
+// check in database, if last update time is less than 1 minute, then send notification to the app.
+// https://firebase.google.com/docs/functions/schedule-functions?gen=2nd
+exports.checkSensorStatus = (0, scheduler_1.onSchedule)({ schedule: "*/1 * * * *", timeZone: "America/Toronto" }, async (event) => {
+    /*
+    data struct expected
+        {
+            "device_id": string,
+            "status": string, // "online" or "offline"
+            "user_email": string
+     */
+    // get all sensors from the database
+    let sensors;
+    // check if last update time is less than 1 minute
+    // const currentTime = new Date();
+    // const oneMinuteAgo = new Date(currentTime.getTime() - 1 * 60 * 1000); // 1 min = 60,000 ms
+    // below gets distinct sensors with their last activity time.
+    const result_AllTimesOneMinuteAgo = await pool.query(`
+        WITH latest_activity AS (
+            SELECT DISTINCT ON (user_email)
+            *
+        FROM sensors_online_activity
+        ORDER BY user_email, last_activity DESC
+            )
+        SELECT *
+        FROM latest_activity
+        WHERE last_activity > now() - interval '2 minutes'
+          AND status ILIKE 'online';`);
+    // if results is empty -> all devices are offline!
+    // if results is not empty then sensors are online. let users know that sensors are online.
+    if (result_AllTimesOneMinuteAgo.rows.length === 0) {
+        logger.info("All sensors are offline for last 2 minutes. no notifications will be sent.");
+        return;
+    }
+    sensors = result_AllTimesOneMinuteAgo.rows;
+    logger.info("Sensors that need status update:", { sensors });
+    // for each sensor, send notification to the user
+    for (const sensor of sensors) {
+        const sensorData = {
+            device_id: sensor.device_id, status: sensor.status, user_email: sensor.user_email,
+        };
+        // send notification to the user
+        await sendNotificationToDevice({
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sensorData)
+        });
+    }
+});
+// API below retrieve signal from sensor about online status and store in the database.
+exports.updateSensorStatus = (0, https_1.onRequest)(async (req, res) => {
+    logger.info("Received request to check sensor status", { method: req.method, url: req.url });
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", { method: req.method });
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    const sensorStatus = req.body; // sensorStatus schema is below
+    /*
+        "device_id": string,
+        "status": string, // "online" or "offline"
+        "user_email": string
+     */
+    if (!sensorStatus || !sensorStatus.device_id || !sensorStatus.status || !sensorStatus.user_email) {
+        logger.error("Invalid sensor status data", { data: sensorStatus });
+        res.status(400).send("Bad Request: Invalid sensor status data");
+        return;
+    }
+    // insert the sensor status into the database
+    try {
+        await pool.query(`INSERT INTO sensors_online_activity (device_id, status, user_email, last_activity)
+                          VALUES ($1, $2, $3,
+                                  NOW())`, [sensorStatus.device_id, sensorStatus.status, sensorStatus.user_email]);
+    }
+    catch (error) {
+        logger.error("Database insertion failed", { error: error instanceof Error ? error.message : String(error) });
+        res.status(500).send("Internal Server Error: Failed to insert sensor status into the database");
+        return;
+    }
+    res.status(200).send("Sensor status checked and notifications sent successfully");
+});
 // API to get device registration token from the app and store it in the database
 exports.getDeviceRegistrationToken = (0, https_1.onRequest)(async (req, res) => {
     logger.info("Received request for device registration token", { method: req.method, url: req.url });
@@ -216,14 +320,14 @@ exports.getDeviceRegistrationToken = (0, https_1.onRequest)(async (req, res) => 
     // save the device registration token in the database
     try {
         await pool.query(`WITH updated AS (
-            UPDATE public.firebase_auth
-                SET device_registration_token = $2
-                WHERE firebase_auth_email = $1
-                RETURNING *
+        UPDATE public.firebase_auth
+        SET device_registration_token = $2
+        WHERE firebase_auth_email = $1 RETURNING *
         )
-        INSERT INTO public.firebase_auth (firebase_auth_email, device_registration_token)
-        SELECT $1, $2
-        WHERE NOT EXISTS (SELECT 1 FROM updated)`, [user_email, deviceRegistrationToken]);
+        INSERT
+        INTO public.firebase_auth (firebase_auth_email, device_registration_token)
+        SELECT $1,
+               $2 WHERE NOT EXISTS (SELECT 1 FROM updated)`, [user_email, deviceRegistrationToken]);
         logger.info("Device registration token saved successfully", { user_email });
         res.status(200).send("Device registration token saved successfully");
         return;
@@ -289,16 +393,13 @@ exports.newDataNotification = (0, https_1.onRequest)(async (req, res) => {
     }
     const message = {
         notification: {
-            title: "New Mail Alert",
-            body: "New mail is deposted in your mailbox on " + dataInString,
-        },
-        data: {
+            title: "New Mail Alert", body: "New mail is delivered in your mailbox on " + dataInString,
+        }, data: {
             deviceId: String(req.body.device_id),
             timestamp: String(req.body.timeStamp),
             motionDetected: String(req.body.motion_detected),
             userEmail: String(req.body.user_email),
-        },
-        // @ts-ignore
+        }, // @ts-ignore
         token: deviceRegistrationToken,
     };
     // send message to device.
@@ -312,5 +413,30 @@ exports.newDataNotification = (0, https_1.onRequest)(async (req, res) => {
         return;
     }
     res.status(200).send("Notification sent successfully");
+});
+// API below when called it will need user_email then returns all sensors where motion_detected is true
+exports.getSensorsWithMotionDetected = (0, https_1.onRequest)(async (req, res) => {
+    logger.info("Received request to get sensors with motion detected", { method: req.method, url: req.url });
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", { method: req.method });
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    const { user_email } = req.body;
+    if (!user_email) {
+        logger.error("Missing user's email  in request");
+        res.status(400).send("Bad Request: Missing device_id or user_email");
+        return;
+    }
+    try {
+        const result = await pool.query(`SELECT * FROM sensors_data
+                                         WHERE linked_user_email = $1
+                                           AND motion_detected = true`, [user_email]);
+        res.status(200).json(result.rows);
+    }
+    catch (error) {
+        logger.error("Error fetching sensors with motion detected", { error: error instanceof Error ? error.message : String(error) });
+        res.status(500).send("Internal Server Error while fetching sensors with motion detected");
+    }
 });
 //# sourceMappingURL=index.js.map

@@ -1,4 +1,4 @@
-package com.example.realmail;
+package com.team10.realmail;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -12,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.credentials.provider.BiometricPromptResult;
 
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -22,6 +21,7 @@ public class ForgotPassword extends AppCompatActivity {
     protected Button reset;
 
     private FirebaseAuth auth;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,11 +50,11 @@ public class ForgotPassword extends AppCompatActivity {
                     Toast.makeText(this, "Reset password email sent", Toast.LENGTH_SHORT).show();
                 }
             });
-        });
             backtologin.setOnClickListener(V -> {
                 Intent intent = new Intent(ForgotPassword.this, MainActivity.class);
                 startActivity(intent); //switch one activity to another
 
             });
-        }
+        });
     }
+}
