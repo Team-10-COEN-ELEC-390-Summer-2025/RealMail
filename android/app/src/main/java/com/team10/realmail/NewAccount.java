@@ -1,4 +1,4 @@
-package com.example.realmail;
+package com.team10.realmail;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
@@ -33,7 +33,7 @@ public class NewAccount extends AppCompatActivity {
 
     @SuppressLint("MissingInflatedId")
     @Override
-    protected void onCreate(Bundle savedInstanceState){
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_new_account);
@@ -41,7 +41,7 @@ public class NewAccount extends AppCompatActivity {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
-        }) ;
+        });
 
         auth = FirebaseAuth.getInstance();//get instance
         submit = findViewById(R.id.button_create_account);
@@ -55,14 +55,14 @@ public class NewAccount extends AppCompatActivity {
         });
     }
 
-    private void createAccount(){
+    private void createAccount() {
         String email1 = email.getText().toString();
         String password1 = password.getText().toString();
         String cpassword1 = cpassword.getText().toString();
         String firstName1 = firstName.getText().toString();
-        String lastName1 =  lastName.getText().toString();
+        String lastName1 = lastName.getText().toString();
 
-        if(!password1.equals(cpassword1)){
+        if (!password1.equals(cpassword1)) {
             Toast.makeText(this, "Passwords don't match!", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -83,18 +83,17 @@ public class NewAccount extends AppCompatActivity {
                         .collection("User Info")
                         .document("User Names")
                         .set(map)
-                        .addOnSuccessListener(aVoid ->{
+                        .addOnSuccessListener(aVoid -> {
                             Log.d("Firestore", "First name successfully saved");
                         })
                         .addOnFailureListener(e -> {
-                            Log.d("Firestore", "Saving failed "+e);
+                            Log.d("Firestore", "Saving failed " + e);
                         });
 
                 Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(NewAccount.this, MainActivity.class);
                 startActivity(intent); //go the the main activity
-            }
-            else {
+            } else {
                 Toast.makeText(this, "Error creating account", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -102,7 +101,7 @@ public class NewAccount extends AppCompatActivity {
 
     }
 
-    private void saveInfo(){
+    private void saveInfo() {
 
     }
 }

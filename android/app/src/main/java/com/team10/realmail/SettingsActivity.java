@@ -1,4 +1,4 @@
-package com.example.realmail;
+package com.team10.realmail;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -13,6 +13,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
+
 import androidx.appcompat.widget.Toolbar;
 
 

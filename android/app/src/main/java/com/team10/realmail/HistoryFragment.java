@@ -1,4 +1,4 @@
-package com.example.realmail;
+package com.team10.realmail;
 
 import android.os.Bundle;
 
@@ -10,12 +10,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.example.realmail.api.SensorsApi;
-import com.example.realmail.api.SensorsRequest;
-import com.example.realmail.api.SensorsData;
+import com.team10.realmail.api.SensorsApi;
+import com.team10.realmail.api.SensorsRequest;
+import com.team10.realmail.api.SensorsData;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -33,6 +35,7 @@ public class HistoryFragment extends Fragment {
     protected RecyclerView recyclerView;
     private historyListAdapter adapter;
     private List<historyListItem> historyList = new ArrayList<>();
+    private List<HistoryListDisplayItem> displayList = new ArrayList<>();
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
@@ -82,7 +85,7 @@ public class HistoryFragment extends Fragment {
         recyclerView = view.findViewById(R.id.historylist);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        adapter = new historyListAdapter(historyList, getContext());
+        adapter = new historyListAdapter(displayList, getContext());
         recyclerView.setAdapter(adapter);
 
         // Retrofit setup
@@ -92,20 +95,38 @@ public class HistoryFragment extends Fragment {
                 .build();
         SensorsApi api = retrofit.create(SensorsApi.class);
 
-        // Hardcoded request
-        SensorsRequest request = new SensorsRequest("1234567890", "sanomihigobertin@gmail.com");
+        // Get email from Firebase authenticated user
+        String userEmail = null;
+        com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            userEmail = user.getEmail();
+        }
+        SensorsRequest request = new SensorsRequest(null, userEmail);
         Call<List<SensorsData>> call = api.getSensorsWithMotionDetected(request);
         call.enqueue(new Callback<List<SensorsData>>() {
             @Override
             public void onResponse(Call<List<SensorsData>> call, Response<List<SensorsData>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    historyList.clear();
+                    displayList.clear();
+                    // Group by device_id
+                    Map<String, List<historyListItem>> grouped = new LinkedHashMap<>();
                     for (SensorsData data : response.body()) {
-                        // Use data.timestamp for the date
-                        historyList.add(new historyListItem(
-                                true, // Always show "New Mail"
-                                data.timestamp // Correct field for date
-                        ));
+                        String deviceId = data.device_id;
+                        historyListItem item = new historyListItem(
+                                true,
+                                data.timestamp
+                        );
+                        if (!grouped.containsKey(deviceId)) {
+                            grouped.put(deviceId, new ArrayList<>());
+                        }
+                        grouped.get(deviceId).add(item);
+                    }
+                    // Flatten to displayList with headers
+                    for (Map.Entry<String, List<historyListItem>> entry : grouped.entrySet()) {
+                        displayList.add(new HistoryListDisplayItem(HistoryListDisplayItem.TYPE_HEADER, entry.getKey(), null));
+                        for (historyListItem item : entry.getValue()) {
+                            displayList.add(new HistoryListDisplayItem(HistoryListDisplayItem.TYPE_ITEM, entry.getKey(), item));
+                        }
                     }
                     adapter.notifyDataSetChanged();
                 }

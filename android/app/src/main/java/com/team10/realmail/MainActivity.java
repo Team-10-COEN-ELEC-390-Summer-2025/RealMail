@@ -1,4 +1,4 @@
-package com.example.realmail;
+package com.team10.realmail;
 
 import static android.content.ContentValues.TAG;
 
@@ -66,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
         newaccount = findViewById(R.id.newaccount);
         email = findViewById(R.id.email_sign_in);
         password = findViewById(R.id.password_sign_in);
+
 
         askNotificationPermission();
 
@@ -174,6 +175,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             String CHANNEL_ID = "default_channel_id";
