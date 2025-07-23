@@ -10,9 +10,18 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import java.time.LocalDateTime;
+import com.example.realmail.api.SensorsApi;
+import com.example.realmail.api.SensorsRequest;
+import com.example.realmail.api.SensorsData;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -73,16 +82,40 @@ public class HistoryFragment extends Fragment {
         recyclerView = view.findViewById(R.id.historylist);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        historyList.add(new historyListItem(true, "4:35PM"));
-        historyList.add(new historyListItem(false, "10:12AM"));
-
-
-
         adapter = new historyListAdapter(historyList, getContext());
         recyclerView.setAdapter(adapter);
 
+        // Retrofit setup
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://us-central1-realmail-39ab4.cloudfunctions.net/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        SensorsApi api = retrofit.create(SensorsApi.class);
 
+        // Hardcoded request
+        SensorsRequest request = new SensorsRequest("1234567890", "sanomihigobertin@gmail.com");
+        Call<List<SensorsData>> call = api.getSensorsWithMotionDetected(request);
+        call.enqueue(new Callback<List<SensorsData>>() {
+            @Override
+            public void onResponse(Call<List<SensorsData>> call, Response<List<SensorsData>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    historyList.clear();
+                    for (SensorsData data : response.body()) {
+                        // Use data.timestamp for the date
+                        historyList.add(new historyListItem(
+                                true, // Always show "New Mail"
+                                data.timestamp // Correct field for date
+                        ));
+                    }
+                    adapter.notifyDataSetChanged();
+                }
+            }
 
+            @Override
+            public void onFailure(Call<List<SensorsData>> call, Throwable t) {
+                // Handle error (e.g., show a Toast)
+            }
+        });
 
         // Inflate the layout for this fragment
         return view;
