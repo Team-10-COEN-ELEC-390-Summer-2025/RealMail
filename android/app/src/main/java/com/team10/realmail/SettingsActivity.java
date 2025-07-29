@@ -24,12 +24,17 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.team10.realmail.ui.settings.DeviceSettingsActivity;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class SettingsActivity extends AppCompatActivity {
 
     private CheckBox checkboxEmail;
     private CheckBox checkboxPush;
     private SharedPreferences prefs;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +54,8 @@ public class SettingsActivity extends AppCompatActivity {
         Button changePasswordBtn = findViewById(R.id.button_change_password);
         Button deleteAccountBtn = findViewById(R.id.button_delete_account);
         Button logoutBtn = findViewById(R.id.button_logout);
+        Button manageDevicesBtn = findViewById(R.id.button_manage_devices);
+
 
         prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
 
@@ -60,6 +67,12 @@ public class SettingsActivity extends AppCompatActivity {
 
         checkboxPush.setOnCheckedChangeListener((buttonView, isChecked) ->
                 prefs.edit().putBoolean("push_notifications", isChecked).apply());
+
+        manageDevicesBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(SettingsActivity.this, DeviceSettingsActivity.class);
+            startActivity(intent);
+        });
+
 
         changePasswordBtn.setOnClickListener(v -> showChangePasswordDialog());
 

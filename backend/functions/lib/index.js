@@ -41,7 +41,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSensorsWithMotionDetected = exports.newDataNotification = exports.getDeviceRegistrationToken = exports.updateSensorStatus = exports.checkSensorStatus = exports.verifyToken = exports.handleSensorIncomingData = exports.handleFirebaseJWT = void 0;
+exports.getAllDevicesForUser = exports.removeDevice = exports.addNewDevice = exports.getSensorsWithMotionDetected = exports.newDataNotification = exports.getDeviceRegistrationToken = exports.updateSensorStatus = exports.checkSensorStatus = exports.verifyToken = exports.handleSensorIncomingData = exports.handleFirebaseJWT = void 0;
 const https_1 = require("firebase-functions/https");
 const logger = __importStar(require("firebase-functions/logger"));
 const admin = __importStar(require("firebase-admin"));
@@ -221,7 +221,7 @@ exports.verifyToken = (0, https_1.onRequest)(async (req, res) => {
 // Periodic API to check update android app about the sensor status
 // check in database, if last update time is less than 1 minute, then send notification to the app.
 // https://firebase.google.com/docs/functions/schedule-functions?gen=2nd
-exports.checkSensorStatus = (0, scheduler_1.onSchedule)({ schedule: "*/1 * * * *", timeZone: "America/Toronto" }, async (event) => {
+exports.checkSensorStatus = (0, scheduler_1.onSchedule)({ schedule: "*/5 * * * *", timeZone: "America/Toronto" }, async (event) => {
     /*
     data struct expected
         {
@@ -236,16 +236,16 @@ exports.checkSensorStatus = (0, scheduler_1.onSchedule)({ schedule: "*/1 * * * *
     // const oneMinuteAgo = new Date(currentTime.getTime() - 1 * 60 * 1000); // 1 min = 60,000 ms
     // below gets distinct sensors with their last activity time.
     const result_AllTimesOneMinuteAgo = await pool.query(`
-        WITH latest_activity AS (
-            SELECT DISTINCT ON (user_email)
-            *
-        FROM sensors_online_activity
-        ORDER BY user_email, last_activity DESC
-            )
-        SELECT *
-        FROM latest_activity
-        WHERE last_activity > now() - interval '2 minutes'
-          AND status ILIKE 'online';`);
+            WITH latest_activity AS (SELECT DISTINCT
+            ON (user_email)
+                *
+            FROM sensors_online_activity
+            ORDER BY user_email, last_activity DESC
+                )
+            SELECT *
+            FROM latest_activity
+            WHERE last_activity > now() - interval '2 minutes'
+              AND status ILIKE 'online';`);
     // if results is empty -> all devices are offline!
     // if results is not empty then sensors are online. let users know that sensors are online.
     if (result_AllTimesOneMinuteAgo.rows.length === 0) {
@@ -429,14 +429,100 @@ exports.getSensorsWithMotionDetected = (0, https_1.onRequest)(async (req, res) =
         return;
     }
     try {
-        const result = await pool.query(`SELECT * FROM sensors_data
-                                         WHERE linked_user_email = $1
-                                           AND motion_detected = true`, [user_email]);
+        const result = await pool.query(`SELECT *
+                 FROM sensors_data
+                 WHERE linked_user_email = $1
+                   AND motion_detected = true
+                 ORDER BY timestamp DESC`, [user_email]);
         res.status(200).json(result.rows);
     }
     catch (error) {
         logger.error("Error fetching sensors with motion detected", { error: error instanceof Error ? error.message : String(error) });
         res.status(500).send("Internal Server Error while fetching sensors with motion detected");
+    }
+});
+// the API below adds a new device to the database, tables = sensors_data
+exports.addNewDevice = (0, https_1.onRequest)(async (req, res) => {
+    logger.info("Received request to add new device", { method: req.method, url: req.url });
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", { method: req.method });
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    /* data expected is
+        * device_id: string, // unique identifier for the device
+        * user_email: string // email of the user who owns the device
+     */
+    const { device_id, user_email } = req.body;
+    if (!device_id || !user_email) {
+        logger.error("Missing device_id or user_email in request");
+        res.status(400).send("Bad Request: Missing device_id or user_email");
+        return;
+    }
+    try {
+        await pool.query(`INSERT INTO sensors_data (device_id, linked_user_email)
+                          VALUES ($1, $2)`, [device_id, user_email]);
+        res.status(200).send("Device added successfully");
+    }
+    catch (error) {
+        logger.error("Error adding new device", { error: error instanceof Error ? error.message : String(error) });
+        res.status(500).send("Internal Server Error. Unable to add new device " + device_id + " for this user " + user_email);
+    }
+});
+// API to remove a device from the database
+exports.removeDevice = (0, https_1.onRequest)(async (req, res) => {
+    logger.info("Received request to remove device", { method: req.method, url: req.url });
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", { method: req.method });
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    /* data expected is
+        * device_id: string, // unique identifier for the device
+        * user_email: string // email of the user who owns the device
+     */
+    const { device_id, user_email } = req.body;
+    if (!device_id || !user_email) {
+        logger.error("Missing device_id or user_email in request");
+        res.status(400).send("Bad Request: Missing device_id or user_email");
+        return;
+    }
+    try {
+        await pool.query(`DELETE
+                          FROM sensors_data
+                          WHERE device_id = $1
+                            AND linked_user_email = $2`, [device_id, user_email]);
+        res.status(200).send("Device removed successfully");
+    }
+    catch (error) {
+        logger.error("Error removing device", { error: error instanceof Error ? error.message : String(error) });
+        res.status(500).send("Internal Server Error. Unable to remove device " + device_id + " for this user " + user_email);
+    }
+});
+// API to get all devices for a user
+exports.getAllDevicesForUser = (0, https_1.onRequest)(async (req, res) => {
+    logger.info("Received request to get all devices for user", { method: req.method, url: req.url });
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", { method: req.method });
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    const { user_email } = req.body;
+    if (!user_email) {
+        logger.error("Missing user_email in request");
+        res.status(400).send("Bad Request: Missing user_email");
+        return;
+    }
+    try {
+        const result = await pool.query(`
+            SELECT DISTINCT device_id
+            FROM sensors_data
+            WHERE linked_user_email = $1`, [user_email]);
+        res.status(200).json(result.rows);
+    }
+    catch (error) {
+        logger.error("Error fetching devices for user", { error: error instanceof Error ? error.message : String(error) });
+        res.status(500).send("Internal Server Error while fetching devices for user");
     }
 });
 //# sourceMappingURL=index.js.map
