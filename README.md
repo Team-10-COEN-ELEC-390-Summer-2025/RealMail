@@ -35,7 +35,7 @@ RealMail/
 │   ├── package.json       # Node.js dependencies for hardware communication
 │   └── README.md          # Hardware setup and deployment instructions
 │
-├── WebRTC-server/          # Real-time video streaming server (Python Flask)
+├── WebRTC-server/          # Real-time video streaming server (Python FastAPI)
 │   ├── src/               # WebRTC client-side JavaScript and HTML templates
 │   ├── main.py            # Flask application with WebRTC signaling server
 │   ├── requirements.txt   # Python dependencies for the streaming server
