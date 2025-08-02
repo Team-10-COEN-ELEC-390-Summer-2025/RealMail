@@ -1,10 +1,11 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
-    namespace = "com.example.realmail"
+    namespace = "com.team10.realmail"
     compileSdk = 35
 
     defaultConfig {
@@ -34,6 +35,9 @@ android {
 
 dependencies {
     val fragment_version = "1.8.8"
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
