@@ -29,6 +29,12 @@
            android:text="Camera"/>
 
        <com.google.android.material.tabs.TabItem
+           android:id="@+id/summaryTab"
+           android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:text="Summary"/>
+
+       <com.google.android.material.tabs.TabItem
            android:id="@+id/historytab"
            android:layout_width="wrap_content"
            android:layout_height="wrap_content"

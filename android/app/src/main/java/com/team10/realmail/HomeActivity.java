@@ -37,12 +37,15 @@ public class HomeActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        toolbar = findViewById(R.id.hometoolbar);
+        setSupportActionBar(toolbar);
         frameLayout1 = (FrameLayout) findViewById(R.id.framelayout); //id
         tablayout1 = (TabLayout) findViewById(R.id.tablayout);
 
 // default fragment to the home
-        getSupportFragmentManager().beginTransaction().replace(R.id.framelayout, new HomeFragment()).addToBackStack(null)
+        getSupportFragmentManager().beginTransaction().replace(R.id.framelayout, new SummaryFragment()).addToBackStack(null)
                 .commit();
+        getSupportActionBar().setTitle("Summary");
 
         tablayout1.setOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
@@ -50,10 +53,16 @@ public class HomeActivity extends AppCompatActivity {
                 Fragment fragment = null;
                 switch (tab.getPosition()) {
                     case 0:
-                        fragment = new HomeFragment();
-                        break;
+                    fragment = new HomeFragment();
+                    getSupportActionBar().setTitle("Camera");
+                    break;
                     case 1:
+                        fragment = new SummaryFragment();
+                        getSupportActionBar().setTitle("Summary");
+                        break;
+                    case 2:
                         fragment = new HistoryFragment();
+                        getSupportActionBar().setTitle("History");
                         break;
                 }
                 //  change the framgment what ever we change
@@ -95,6 +104,7 @@ public class HomeActivity extends AppCompatActivity {
             Intent intent = new Intent(HomeActivity.this, SettingsActivity.class);
             startActivity(intent);
         }
+
 
 
         return super.onOptionsItemSelected(item);
