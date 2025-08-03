@@ -1,10 +1,7 @@
-# RealMail
-
 ## Purchase Before Working
 1. Raspberry Pi compatible camera, such as the imx219
 2. 5V 2A Power Source
 3. OpenPIR Motion Sensor
-4. Jumper wires
 
 ## Install Before Working
 1. Make sure that Python, Bonjour Print Service, and Raspberry Pi Imager onto your computer before starting.
@@ -38,16 +35,33 @@
 ```bash
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y python3-pip python3-venv python3-rpi.gpio libcamera-apps
+sudo apt install -y git build-essential cmake libmicrohttpd-dev libjansson-dev \
+libssl-dev libsrtp2-dev libsofia-sip-ua-dev libglib2.0-dev libopus-dev \
+libogg-dev libcurl4-openssl-dev liblua5.3-dev libconfig-dev pkg-config
+git clone https://github.com/meetecho/janus-gateway.git
+cd janus-gateway
+sh autogen.sh
+sudo apt install -y libnice-dev
+sudo apt install -y libwebsockets-dev
+./configure --prefix=/opt/janus
+make
+sudo make install
+sudo make configs
 python3 -m venv firebase-env
-source firebase-env/bin/activate
+source ~/firebase-env/bin/activate
 pip install --upgrade pip
-pip install requests picamera2
+pip install --upgrade pip setuptools wheel
+pip install requests
+pip install RPi.GPIO
+sudo apt install python3-picamera2
 deactivate
 sudo nano /boot/firmware/congfig.txt
 ```
 
 8. Edit the config.txt thusly:
-    Change the automatic camera detection: camera_auto_detect=0
+    Change the automatic camera detection to: camera_auto_detect=0
     Add this to the bottom of the file: dtoverlay=imx219
 
 9. Reboot your Rasberry Pi
+
+10. Activate firebase-env, then run code.
