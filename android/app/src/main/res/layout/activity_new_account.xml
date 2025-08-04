@@ -16,7 +16,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Creating New Account"
+            android:text="Create New Account"
             android:textSize="24sp"
             android:textColor="#B8720B"
             android:textStyle="bold"
@@ -102,16 +102,18 @@
         <Button
             android:id="@+id/button_create_account"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="71dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/rounded_button"
+            android:backgroundTint="@color/orange"
+            android:paddingLeft="24dp"
+            android:paddingTop="8dp"
+            android:paddingRight="24dp"
+            android:paddingBottom="8dp"
             android:text="Create Account"
             android:textColor="#FFFFFF"
-            android:layout_gravity="center"
-            android:paddingLeft="24dp"
-            android:paddingRight="24dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:background="@drawable/rounded_button"
-            android:layout_marginBottom="16dp" />
+            android:textColorLink="#FF9800" />
 
 
 
