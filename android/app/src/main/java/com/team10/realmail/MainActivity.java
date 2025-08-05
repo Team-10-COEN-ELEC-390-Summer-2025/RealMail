@@ -6,6 +6,7 @@ import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,12 +29,16 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,11 +50,19 @@ public class MainActivity extends AppCompatActivity {
                     //notification not shown
                 }
             });
+
     protected Button signIn;
-    protected TextView forgotpw, newaccount;
+    protected TextView forgotpw, newaccount, lastLoginText;
     protected EditText email, password;
     String global_device_registration_token = "";
     private FirebaseAuth auth;
+    private SharedPreferences loginPrefs;
+
+    // Session duration: 1 day in milliseconds
+    private static final long SESSION_DURATION = 24 * 60 * 60 * 1000; // 1 day
+    private static final String PREFS_NAME = "LoginPrefs";
+    private static final String LAST_LOGIN_TIME = "last_login_time";
+    private static final String SESSION_EXPIRY = "session_expiry";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,18 +74,27 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        // Initialize SharedPreferences for session management
+        loginPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+
         signIn = findViewById(R.id.signin);
         forgotpw = findViewById(R.id.forgotpw);
         newaccount = findViewById(R.id.newaccount);
+        lastLoginText = findViewById(R.id.last_login_text); // Add this to your layout
         email = findViewById(R.id.email_sign_in);
         password = findViewById(R.id.password_sign_in);
 
-
         askNotificationPermission();
-
         createNotificationChannel();
 
         auth = FirebaseAuth.getInstance();
+
+        // Check if user is already logged in and session is valid
+        checkExistingSession();
+
+        // Display last login time
+        displayLastLoginTime();
 
         signIn.setOnClickListener(v -> {
             signIn();
@@ -89,6 +111,84 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * Check if user has a valid existing session
+     */
+    private void checkExistingSession() {
+        FirebaseUser currentUser = auth.getCurrentUser();
+
+        if (currentUser != null) {
+            // Check if session hasn't expired
+            long sessionExpiry = loginPrefs.getLong(SESSION_EXPIRY, 0);
+            long currentTime = System.currentTimeMillis();
+
+            if (currentTime < sessionExpiry) {
+                // Session is still valid, go directly to HomeActivity
+                Log.d(TAG, "Valid session found, redirecting to HomeActivity");
+                Toast.makeText(this, "Welcome back!", Toast.LENGTH_SHORT).show();
+
+                // Update device registration token for notifications
+                getDeviceRegistrationToken();
+
+                Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                startActivity(intent);
+                finish(); // Don't allow back to login screen
+                return;
+            } else {
+                // Session expired, sign out the user
+                Log.d(TAG, "Session expired, signing out user");
+                auth.signOut();
+                clearSessionData();
+            }
+        }
+
+        // If no valid session, stay on login screen
+        Log.d(TAG, "No valid session found, showing login screen");
+    }
+
+    /**
+     * Display last login time if available
+     */
+    private void displayLastLoginTime() {
+        long lastLoginTime = loginPrefs.getLong(LAST_LOGIN_TIME, 0);
+
+        if (lastLoginTime > 0 && lastLoginText != null) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
+            String formattedDate = dateFormat.format(new Date(lastLoginTime));
+            lastLoginText.setText("Last login: " + formattedDate);
+            lastLoginText.setVisibility(TextView.VISIBLE);
+        } else if (lastLoginText != null) {
+            lastLoginText.setVisibility(TextView.GONE);
+        }
+    }
+
+    /**
+     * Save session data after successful login
+     */
+    private void saveSessionData() {
+        long currentTime = System.currentTimeMillis();
+        long expiryTime = currentTime + SESSION_DURATION;
+
+        SharedPreferences.Editor editor = loginPrefs.edit();
+        editor.putLong(LAST_LOGIN_TIME, currentTime);
+        editor.putLong(SESSION_EXPIRY, expiryTime);
+        editor.apply();
+
+        Log.d(TAG, "Session data saved. Expires at: " + new Date(expiryTime));
+    }
+
+    /**
+     * Clear session data on logout or expiry
+     */
+    private void clearSessionData() {
+        SharedPreferences.Editor editor = loginPrefs.edit();
+        editor.remove(SESSION_EXPIRY);
+        // Keep last login time for display purposes
+        editor.apply();
+
+        Log.d(TAG, "Session data cleared");
+    }
+
     private void signIn() {
         auth = FirebaseAuth.getInstance();
 
@@ -97,25 +197,26 @@ public class MainActivity extends AppCompatActivity {
 
         auth.signInWithEmailAndPassword(email1, password1).addOnCompleteListener(this, task -> {
             if (task.isSuccessful()) {
+                // Save session data for persistence
+                saveSessionData();
 
                 getDeviceRegistrationToken();
                 String userEmail = task.getResult().getUser().getEmail();
                 new Thread(() -> {
-
                     try {
                         sendRegistrationToServer(global_device_registration_token, userEmail);
                     } catch (Exception e) {
                         e.printStackTrace();
-
                         runOnUiThread(() -> Toast.makeText(MainActivity.this, "Error sending registration token: " + e.getMessage(), Toast.LENGTH_LONG).show());
                     }
                 }).start();
+
                 Toast.makeText(this, "Logging in...", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(MainActivity.this, HomeActivity.class);
                 startActivity(intent);
+                finish(); // Prevent going back to login screen
             } else {
                 Toast.makeText(this, "Error logging in", Toast.LENGTH_SHORT).show();
-                return;
             }
 
         });

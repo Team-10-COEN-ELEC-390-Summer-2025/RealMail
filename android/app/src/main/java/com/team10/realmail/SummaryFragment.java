@@ -1,9 +1,6 @@
 package com.team10.realmail;
 
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,19 +8,18 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.fragment.app.Fragment;
+
 import com.bumptech.glide.Glide;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.team10.realmail.api.SensorsApi;
 import com.team10.realmail.api.SensorsData;
 import com.team10.realmail.api.SensorsRequest;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 
-import java.sql.Array;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -62,7 +58,6 @@ public class SummaryFragment extends Fragment {
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
-
 
 
     // TODO: Rename and change types of parameters
@@ -166,7 +161,7 @@ public class SummaryFragment extends Fragment {
 
                     }
 
-                    for(historyListItem item : historyList){
+                    for (historyListItem item : historyList) {
                         try {
                             Instant instant = Instant.parse(item.getTimeOfOccurence());
                             long timestamp = instant.toEpochMilli();
@@ -179,10 +174,10 @@ public class SummaryFragment extends Fragment {
                         }
                     }
 
-                    if(dailyList.size() > 1){
-                        dailyMail.setText(dailyList.size()+" mails");
-                    } else{
-                        dailyMail.setText(dailyList.size()+" mail");
+                    if (dailyList.size() > 1) {
+                        dailyMail.setText(dailyList.size() + " mails");
+                    } else {
+                        dailyMail.setText(dailyList.size() + " mail");
 
                     }
 
@@ -199,11 +194,10 @@ public class SummaryFragment extends Fragment {
         fetchPicture();
 
 
-
         return view;
     }
 
-    private void getCurrentUserName(){
+    private void getCurrentUserName() {
         String user = auth.getCurrentUser().getUid();
         Log.d("Firestore", user);
         database = FirebaseFirestore.getInstance();
@@ -220,7 +214,7 @@ public class SummaryFragment extends Fragment {
                             firstName = document.getString("firstName");
                             lastName = document.getString("lastName");
 
-                            username.setText(firstName+" "+lastName);
+                            username.setText(firstName + " " + lastName);
 
                             Log.d("Firestore", "Name: " + firstName + " " + lastName);
                         } else {
@@ -230,12 +224,12 @@ public class SummaryFragment extends Fragment {
                     } else {
                         Log.w("Firestore", "Failed to fetch document.", task.getException());
                     }
-                    });
+                });
 
-        username.setText(firstName+" "+lastName);
+        username.setText(firstName + " " + lastName);
     }
 
-    private void fetchPicture(){
+    private void fetchPicture() {
 
         StorageReference rootRef = FirebaseStorage.getInstance().getReference();
         rootRef.listAll().addOnSuccessListener(listResult -> {
