@@ -3,8 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".HomeFragment"
-    >
+    tools:context=".HomeFragment">
 
     <Button
         android:id="@+id/camera"
@@ -15,7 +14,6 @@
         android:textColor="@color/white"
         android:layout_gravity="center"
         android:backgroundTint="@color/orange"
-        android:layout_marginTop="50dp"
-        />
+        android:layout_marginTop="50dp" />
 
 </FrameLayout>

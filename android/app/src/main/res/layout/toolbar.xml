@@ -2,21 +2,8 @@
 <androidx.appcompat.widget.Toolbar xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="?attr/actionBarSize"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@color/orange"
-    android:id="@+id/hometoolbar"
-    >
-    <TextView
-        android:id="@+id/toolbar_title"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="Home"
-        android:textColor="@color/white"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textAlignment="center" />
-
+    android:id="@+id/hometoolbar">
 
 
 </androidx.appcompat.widget.Toolbar>

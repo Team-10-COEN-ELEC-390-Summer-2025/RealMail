@@ -1,15 +1,16 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
-    namespace = "com.example.realmail"
+    namespace = "com.team10.realmail"
     compileSdk = 35
 
     defaultConfig {
         applicationId = "com.team10.realmail"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -34,6 +35,9 @@ android {
 
 dependencies {
     val fragment_version = "1.8.8"
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
@@ -47,6 +51,13 @@ dependencies {
     implementation("com.google.firebase:firebase-auth:23.2.1")
     implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation("androidx.fragment:fragment:1.8.8")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.github.bumptech.glide:glide:4.15.1")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.15.1")
+    implementation("com.google.firebase:firebase-storage:20.3.0")
+    implementation("com.jcraft:jsch:0.1.55")
+    implementation("com.github.mik3y:usb-serial-for-android:3.7.3")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

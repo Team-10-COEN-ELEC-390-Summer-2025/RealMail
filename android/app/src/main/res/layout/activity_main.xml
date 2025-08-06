@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
@@ -18,14 +17,27 @@
         android:text="RealMail"
         android:textColor="@color/orange"
         android:textSize="35dp"
-        android:layout_marginTop="20dp"/>
+        android:layout_marginTop="20dp" />
 
+
+    <!-- Last Login Time Display -->
+    <TextView
+        android:id="@+id/last_login_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Last login: Never"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone" />
 
     <ImageView
         android:layout_width="224dp"
         android:layout_height="251dp"
         android:src="@drawable/img"
-        android:layout_gravity="center"/>
+        android:layout_gravity="center" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -33,7 +45,7 @@
         android:text="Username:"
         android:textColor="@color/black"
         android:textSize="20dp"
-        android:layout_marginLeft="25dp"/>
+        android:layout_marginLeft="25dp" />
 
     <EditText
         android:id="@+id/email_sign_in"
@@ -41,7 +53,7 @@
         android:layout_height="50dp"
         android:layout_gravity="center"
         android:background="@color/white"
-        android:hint="Enter your username"/>
+        android:hint="Enter your username" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -50,7 +62,7 @@
         android:textSize="20dp"
         android:textColor="@color/black"
         android:layout_marginLeft="25dp"
-        android:layout_marginTop="10dp"/>
+        android:layout_marginTop="10dp" />
 
     <EditText
         android:id="@+id/password_sign_in"
@@ -59,7 +71,7 @@
         android:layout_gravity="center"
         android:background="@color/white"
         android:hint="Enter your password"
-        android:password="true"/>
+        android:password="true" />
 
     <Button
         android:id="@+id/signin"
@@ -70,8 +82,7 @@
         android:textColor="@color/white"
         android:layout_gravity="center"
         android:backgroundTint="@color/orange"
-        android:layout_marginTop="15dp"
-        />
+        android:layout_marginTop="15dp" />
 
     <TextView
         android:id="@+id/forgotpw"
@@ -81,7 +92,7 @@
         android:layout_gravity="center"
         android:textSize="20dp"
         android:textColor="@color/black"
-        android:layout_marginTop="10dp"/>
+        android:layout_marginTop="10dp" />
 
     <TextView
         android:id="@+id/newaccount"
@@ -92,7 +103,7 @@
         android:textSize="20dp"
         android:layout_marginTop="20dp"
         android:gravity="center"
-        android:layout_gravity="center"/>
+        android:layout_gravity="center" />
 
 
 </LinearLayout>
