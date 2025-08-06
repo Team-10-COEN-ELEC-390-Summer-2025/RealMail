@@ -1,9 +1,5 @@
 package com.team10.realmail;
 
-import com.google.type.DateTime;
-
-import java.time.LocalDateTime;
-
 public class historyListItem {
 
     private Boolean status;
