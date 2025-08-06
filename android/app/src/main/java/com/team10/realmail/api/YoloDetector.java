@@ -33,8 +33,8 @@ public class YoloDetector {
     private static  int NUM_FEATURES = 6;    // 6 values per detection
     private static final int NUM_CELLS = 8400;
     private static int NUM_CLASSES = 2;
-    private static final float THRESHOLD = 0.70f;
-    private static final float NMS_THRESHOLD = 0.6f;
+    private static final float THRESHOLD = 0.85f;
+    private static final float NMS_THRESHOLD = 0.8f;
 
     public static final String[] labels = {"Letter", "Package"};
 
@@ -79,18 +79,30 @@ public class YoloDetector {
         List<Detection> dets = new ArrayList<>();
         List<Float> Hscores = new ArrayList<>() ;
 
-        float[] xc = out[0], yc = out[1], w = out[2], h = out[3], obj = out[4], cls = out[5];
+        float[] xc = out[0], yc = out[1], w = out[2], h = out[3], obj = out[4], cls = out[5]; // Obj = Letter conf, cls = Package conf
 
         for (int i = 0; i < NUM_CELLS; i++) {
-            if (obj[i] < THRESHOLD) continue;
+            float score = 0;
+            int clsIdx = -1;
+            if (obj[i] < cls[i]){
+                score = cls[i];
+                clsIdx = 1;
+            } else {
+                score = obj[i];
+                clsIdx =0;
 
-            float score = (obj[i]); //Temporary
+            }
+            if (score < THRESHOLD) continue;
+
+
+
+
             Hscores.add(score);
             if (score < THRESHOLD) continue;
 
             float x0 = xc[i] - w[i] / 2;
             float y0 = yc[i] - h[i] / 2;
-            dets.add(new Detection(0, score, x0, y0, w[i], h[i]));
+            dets.add(new Detection(clsIdx, score, x0, y0, w[i], h[i]));
 
 
 
