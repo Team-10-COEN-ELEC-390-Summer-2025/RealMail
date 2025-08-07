@@ -13,9 +13,10 @@ import java.util.List;
 import java.time.format.DateTimeFormatter;
 
 public class historyListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-    private final List<HistoryListDisplayItem> displayList;
+    private final List<HistoryListDisplayItem> displayList;  //variable declaration
     private final Context context;
 
+    //constructor
     public historyListAdapter(List<HistoryListDisplayItem> displayList, Context context) {
         this.displayList = displayList;
         this.context = context;
@@ -78,12 +79,13 @@ public class historyListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         }
     }
 
+    //layout of every single items
     static class ItemViewHolder extends RecyclerView.ViewHolder {
         TextView status, time_of_occurence;
 
         public ItemViewHolder(@NonNull View itemView) {
             super(itemView);
-            status = itemView.findViewById(R.id.mailbox_status);
+            status = itemView.findViewById(R.id.mailbox_status);//link the id to the layout of textveiw objects
             time_of_occurence = itemView.findViewById(R.id.time_of_occurence);
         }
     }

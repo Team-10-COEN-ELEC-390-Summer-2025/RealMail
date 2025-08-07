@@ -32,7 +32,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
  */
 public class HistoryFragment extends Fragment {
 
-    protected RecyclerView recyclerView;
+    protected RecyclerView recyclerView; //declared recycelview,adopter history
     private historyListAdapter adapter;
     private List<historyListItem> historyList = new ArrayList<>();
     private List<HistoryListDisplayItem> displayList = new ArrayList<>();
@@ -77,14 +77,18 @@ public class HistoryFragment extends Fragment {
     }
 
     @Override
+
+
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
+        //take a lyout from history frament to display
         View view = inflater.inflate(R.layout.fragment_history, container, false);
 
+        //initatated the recyclview and setting a layout for recycleview
         recyclerView = view.findViewById(R.id.historylist);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        //initatated the adaptor and setting adapter to recycleview
         adapter = new historyListAdapter(displayList, getContext());
         recyclerView.setAdapter(adapter);
 

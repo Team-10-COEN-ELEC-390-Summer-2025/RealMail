@@ -45,11 +45,11 @@ public class MainActivity extends AppCompatActivity {
                     //notification not shown
                 }
             });
-    protected Button signIn;
+    protected Button signIn; //declared variable
     protected TextView forgotpw, newaccount;
     protected EditText email, password;
     String global_device_registration_token = "";
-    private FirebaseAuth auth;
+    private FirebaseAuth auth; // getting the instance from firebase
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        //link the id to the layout the objects
+
         signIn = findViewById(R.id.signin);
         forgotpw = findViewById(R.id.forgotpw);
         newaccount = findViewById(R.id.newaccount);
@@ -75,28 +78,32 @@ public class MainActivity extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
 
         signIn.setOnClickListener(v -> {
-            signIn();
+            signIn(); //run signin function
         });
         forgotpw.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, ForgotPassword.class);
+            Intent intent = new Intent(MainActivity.this, ForgotPassword.class);//change the activity from  main to forgot pw
             startActivity(intent);
         });
 
         newaccount.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, NewAccount.class);
+            Intent intent = new Intent(MainActivity.this, NewAccount.class);// change the acti from main to newacc
             startActivity(intent);
         });
 
     }
 
+    //signin function
     private void signIn() {
         auth = FirebaseAuth.getInstance();
 
-        String email1 = email.getText().toString();
-        String password1 = password.getText().toString();
+        String email1 = email.getText().toString(); //get the content from the email edit text,to store in email
+        String password1 = password.getText().toString(); //get the content from the pw edit text,to store in pw
 
+        //sigbin attempt to firebase with the email and password
         auth.signInWithEmailAndPassword(email1, password1).addOnCompleteListener(this, task -> {
-            if (task.isSuccessful()) {
+
+                //if signin is successful
+                 if (task.isSuccessful()) {
 
                 getDeviceRegistrationToken();
                 String userEmail = task.getResult().getUser().getEmail();
@@ -111,10 +118,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }).start();
                 Toast.makeText(this, "Logging in...", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                Intent intent = new Intent(MainActivity.this, HomeActivity.class);//change the activity from main to home
                 startActivity(intent);
             } else {
-                Toast.makeText(this, "Error logging in", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Error logging in", Toast.LENGTH_SHORT).show();//display msg
                 return;
             }
 
