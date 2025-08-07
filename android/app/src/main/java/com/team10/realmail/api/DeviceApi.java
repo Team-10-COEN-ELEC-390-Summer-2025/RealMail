@@ -19,4 +19,8 @@ public interface DeviceApi {
     @Headers({"Content-Type: application/json"})
     @POST("removeDevice")
     Call<Void> removeDevice(@Body DeviceRequest request);
+
+    @Headers({"Content-Type: application/json"})
+    @POST("getDeviceStatusIndicators")
+    Call<DeviceStatusResponse> checkDeviceStatus(@Body DeviceRequest request);
 }

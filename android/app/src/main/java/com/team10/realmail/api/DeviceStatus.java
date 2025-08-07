@@ -2,7 +2,7 @@ package com.team10.realmail.api;
 
 import com.google.gson.annotations.SerializedName;
 
-public class Device {
+public class DeviceStatus {
     @SerializedName("device_id")
     private String deviceId;
 
@@ -53,26 +53,12 @@ public class Device {
         }
     }
 
-    public Device(String deviceId) {
-        this.deviceId = deviceId;
-        this.connectionStatus = "offline"; // default status
+    public DeviceStatus() {
     }
 
-    public Device(String deviceId, String connectionStatus, String lastSeen) {
-        this.deviceId = deviceId;
-        this.connectionStatus = connectionStatus;
-        this.lastSeen = lastSeen;
-    }
-
-    public Device() {
-    } // Default constructor for Gson
-
+    // Getters
     public String getDeviceId() {
         return deviceId;
-    }
-
-    public void setDeviceId(String deviceId) {
-        this.deviceId = deviceId;
     }
 
     public String getConnectionStatus() {
@@ -81,10 +67,6 @@ public class Device {
 
     public String getStatus() {
         return connectionStatus; // Alias for compatibility
-    }
-
-    public void setStatus(String status) {
-        this.connectionStatus = status;
     }
 
     public String getVisualIndicator() {
@@ -97,10 +79,6 @@ public class Device {
 
     public String getLastHeartbeat() {
         return lastSeen; // Alias for compatibility
-    }
-
-    public void setLastHeartbeat(String lastHeartbeat) {
-        this.lastSeen = lastHeartbeat;
     }
 
     public String getMinutesSinceLastSeen() {
@@ -123,16 +101,44 @@ public class Device {
         return healthInfo;
     }
 
-    public long getLastHeartbeatTimestamp() {
-        // Convert ISO string to timestamp if needed
-        // For now, return 0 since timestamp not provided in API
-        return 0;
+    // Setters
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
     }
 
-    public void setLastHeartbeatTimestamp(long lastHeartbeatTimestamp) {
-        // Not used by current API response
+    public void setConnectionStatus(String connectionStatus) {
+        this.connectionStatus = connectionStatus;
     }
 
+    public void setVisualIndicator(String visualIndicator) {
+        this.visualIndicator = visualIndicator;
+    }
+
+    public void setLastSeen(String lastSeen) {
+        this.lastSeen = lastSeen;
+    }
+
+    public void setMinutesSinceLastSeen(String minutesSinceLastSeen) {
+        this.minutesSinceLastSeen = minutesSinceLastSeen;
+    }
+
+    public void setCpuTemp(String cpuTemp) {
+        this.cpuTemp = cpuTemp;
+    }
+
+    public void setUptimeSeconds(String uptimeSeconds) {
+        this.uptimeSeconds = uptimeSeconds;
+    }
+
+    public void setRawStatus(String rawStatus) {
+        this.rawStatus = rawStatus;
+    }
+
+    public void setHealthInfo(HealthInfo healthInfo) {
+        this.healthInfo = healthInfo;
+    }
+
+    // Helper methods for compatibility
     public boolean isOnline() {
         return "online".equals(connectionStatus);
     }
@@ -143,5 +149,11 @@ public class Device {
 
     public boolean isOffline() {
         return "offline".equals(connectionStatus);
+    }
+
+    public long getLastHeartbeatTimestamp() {
+        // Convert ISO string to timestamp if needed
+        // For now, return 0 since timestamp not provided in API
+        return 0;
     }
 }

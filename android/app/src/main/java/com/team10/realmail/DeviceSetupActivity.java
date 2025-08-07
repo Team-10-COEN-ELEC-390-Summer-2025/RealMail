@@ -15,6 +15,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -29,8 +30,6 @@ import com.team10.realmail.utils.NetworkScanner;
 import com.team10.realmail.utils.SSHHelper;
 
 import java.util.List;
-
-import androidx.appcompat.app.AlertDialog;
 
 import retrofit2.Call;
 import retrofit2.Callback;

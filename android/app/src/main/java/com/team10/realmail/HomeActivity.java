@@ -30,8 +30,6 @@ public class HomeActivity extends AppCompatActivity {
 
 
     protected Toolbar toolbar; // toolbar
-  
-   
 
 
     // Session management constants (same as MainActivity)
@@ -121,14 +119,18 @@ public class HomeActivity extends AppCompatActivity {
 
         }
 
-        if (item.getItemId() == R.id.settings)
-        {
+        if (item.getItemId() == R.id.device_status) {
+            Intent intent = new Intent(HomeActivity.this, DeviceStatusActivity.class);
+            startActivity(intent);
+            return true;
+        }
+
+        if (item.getItemId() == R.id.settings) {
             Intent intent = new Intent(HomeActivity.this, SettingsActivity.class);//click on setting incon
             // so it goes back to home
             startActivity(intent); // start setting activity
         }
 
-       
 
         if (id == R.id.action_logout) {
             showLogoutConfirmation();

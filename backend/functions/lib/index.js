@@ -41,7 +41,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllDevicesForUser = exports.removeDevice = exports.addNewDevice = exports.getSensorsWithMotionDetected = exports.newDataNotification = exports.getDeviceRegistrationToken = exports.updateSensorStatus = exports.checkSensorStatus = exports.verifyToken = exports.handleSensorIncomingData = exports.handleFirebaseJWT = void 0;
+exports.checkDeviceStatusIndicators = exports.getDeviceStatusIndicators = exports.handleDeviceLogs = exports.getAllDevicesForUser = exports.removeDevice = exports.addNewDevice = exports.getSensorsWithMotionDetected = exports.newDataNotification = exports.getDeviceRegistrationToken = exports.updateSensorStatus = exports.verifyToken = exports.handleSensorIncomingData = exports.handleFirebaseJWT = void 0;
 const https_1 = require("firebase-functions/https");
 const logger = __importStar(require("firebase-functions/logger"));
 const admin = __importStar(require("firebase-admin"));
@@ -163,6 +163,23 @@ exports.handleSensorIncomingData = (0, https_1.onRequest)(async (req, res) => {
     // return success response
     res.status(200).send("Sensor data received and stored successfully");
 });
+/**
+ * Formats a date to a human-readable string
+ * @param date - The date to format
+ * @returns A formatted date string like "August 7, 2025 at 6:21 PM"
+ */
+function formatDateForNotification(date) {
+    const options = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZoneName: 'short'
+    };
+    return date.toLocaleDateString('en-US', options);
+}
 async function sendNotificationToDevice(options) {
     // once sensor data is stored, send notification to the app
     try {
@@ -216,53 +233,6 @@ exports.verifyToken = (0, https_1.onRequest)(async (req, res) => {
         }
         res.status(500).send("Internal Server Error");
         return;
-    }
-});
-// Periodic API to check update android app about the sensor status
-// check in database, if last update time is less than 1 minute, then send notification to the app.
-// https://firebase.google.com/docs/functions/schedule-functions?gen=2nd
-exports.checkSensorStatus = (0, scheduler_1.onSchedule)({ schedule: "*/5 * * * *", timeZone: "America/Toronto" }, async (event) => {
-    /*
-    data struct expected
-        {
-            "device_id": string,
-            "status": string, // "online" or "offline"
-            "user_email": string
-     */
-    // get all sensors from the database
-    let sensors;
-    // check if last update time is less than 1 minute
-    // const currentTime = new Date();
-    // const oneMinuteAgo = new Date(currentTime.getTime() - 1 * 60 * 1000); // 1 min = 60,000 ms
-    // below gets distinct sensors with their last activity time.
-    const result_AllTimesOneMinuteAgo = await pool.query(`
-            WITH latest_activity AS (SELECT DISTINCT
-            ON (user_email)
-                *
-            FROM sensors_online_activity
-            ORDER BY user_email, last_activity DESC
-                )
-            SELECT *
-            FROM latest_activity
-            WHERE last_activity > now() - interval '2 minutes'
-              AND status ILIKE 'online';`);
-    // if results is empty -> all devices are offline!
-    // if results is not empty then sensors are online. let users know that sensors are online.
-    if (result_AllTimesOneMinuteAgo.rows.length === 0) {
-        logger.info("All sensors are offline for last 2 minutes. no notifications will be sent.");
-        return;
-    }
-    sensors = result_AllTimesOneMinuteAgo.rows;
-    logger.info("Sensors that need status update:", { sensors });
-    // for each sensor, send notification to the user
-    for (const sensor of sensors) {
-        const sensorData = {
-            device_id: sensor.device_id, status: sensor.status, user_email: sensor.user_email,
-        };
-        // send notification to the user
-        await sendNotificationToDevice({
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sensorData)
-        });
     }
 });
 // API below retrieve signal from sensor about online status and store in the database.
@@ -384,16 +354,16 @@ exports.newDataNotification = (0, https_1.onRequest)(async (req, res) => {
     }
     // compose json message to send to the device
     const dateOfSensorData = new Date(sensorData.timeStamp);
-    let dataInString;
+    let formattedDate;
     if (isNaN(dateOfSensorData.getTime())) {
-        dataInString = new Date().toISOString(); // if the date is invalid, use current date`
+        formattedDate = formatDateForNotification(new Date()); // if the date is invalid, use current date
     }
     else {
-        dataInString = dateOfSensorData.toISOString(); // convert date to ISO string
+        formattedDate = formatDateForNotification(dateOfSensorData); // format the date nicely
     }
     const message = {
         notification: {
-            title: "New Mail Alert", body: "New mail is delivered in your mailbox on " + dataInString,
+            title: "New Mail Alert", body: "New mail is delivered in your mailbox on " + formattedDate,
         }, data: {
             deviceId: String(req.body.device_id),
             timestamp: String(req.body.timeStamp),
@@ -430,10 +400,10 @@ exports.getSensorsWithMotionDetected = (0, https_1.onRequest)(async (req, res) =
     }
     try {
         const result = await pool.query(`SELECT *
-                 FROM sensors_data
-                 WHERE linked_user_email = $1
-                   AND motion_detected = true
-                 ORDER BY timestamp DESC`, [user_email]);
+                                         FROM sensors_data
+                                         WHERE linked_user_email = $1
+                                           AND motion_detected = true
+                                         ORDER BY timestamp DESC`, [user_email]);
         res.status(200).json(result.rows);
     }
     catch (error) {
@@ -523,6 +493,217 @@ exports.getAllDevicesForUser = (0, https_1.onRequest)(async (req, res) => {
     catch (error) {
         logger.error("Error fetching devices for user", { error: error instanceof Error ? error.message : String(error) });
         res.status(500).send("Internal Server Error while fetching devices for user");
+    }
+});
+// API to handle device log data from Raspberry Pi devices
+exports.handleDeviceLogs = (0, https_1.onRequest)(async (req, res) => {
+    logger.info("Received device log request", { method: req.method, url: req.url });
+    // Only accept POST requests
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", { method: req.method });
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    try {
+        const { device_id, user_email, timestamp, status, system_info } = req.body;
+        // Validate required fields
+        if (!device_id || !user_email || !timestamp || !status) {
+            logger.error("Missing required fields in device log request", { data: req.body });
+            res.status(400).send("Bad Request: Missing required fields: device_id, user_email, timestamp, status");
+            return;
+        }
+        // Extract system_info fields
+        const cpu_temp = (system_info === null || system_info === void 0 ? void 0 : system_info.cpu_temp) || null;
+        const uptime_seconds = (system_info === null || system_info === void 0 ? void 0 : system_info.uptime_seconds) || null;
+        const system_timestamp = (system_info === null || system_info === void 0 ? void 0 : system_info.timestamp) || null;
+        // Convert timestamp strings to Date objects for database insertion
+        const deviceTimestamp = new Date(timestamp);
+        const systemTimestampDate = system_timestamp ? new Date(system_timestamp) : null;
+        // Insert device log data into database
+        await pool.query(`
+            INSERT INTO device_logs (device_id, user_email, timestamp, status, cpu_temp, uptime_seconds,
+                                     system_timestamp)
+            VALUES ($1, $2, $3, $4, $5, $6,
+                    $7)`, [device_id, user_email, deviceTimestamp, status, cpu_temp, uptime_seconds, systemTimestampDate]);
+        logger.info("Device log data stored successfully", {
+            device_id, user_email, status, timestamp: deviceTimestamp.toISOString()
+        });
+        res.status(200).send("Device log data received and stored successfully");
+    }
+    catch (error) {
+        logger.error("Error handling device log data", {
+            error: error instanceof Error ? error.message : String(error), data: req.body
+        });
+        res.status(500).send("Internal Server Error while processing device log data");
+    }
+});
+// API to get current device status indicators for a user
+exports.getDeviceStatusIndicators = (0, https_1.onRequest)(async (req, res) => {
+    logger.info("Received request for device status indicators", { method: req.method, url: req.url });
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", { method: req.method });
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    try {
+        const { user_email } = req.body;
+        if (!user_email) {
+            logger.error("Missing user_email in device status request");
+            res.status(400).send("Bad Request: Missing user_email");
+            return;
+        }
+        // Query to get latest device status with visual indicators
+        const statusQuery = await pool.query(`
+            WITH latest_logs AS (SELECT DISTINCT
+            ON (device_id)
+                device_id,
+                user_email,
+                timestamp,
+                status,
+                cpu_temp,
+                uptime_seconds,
+                created_at
+            FROM device_logs
+            WHERE user_email = $1
+            ORDER BY device_id, timestamp DESC
+                ),
+                status_with_indicators AS (
+            SELECT
+                device_id, user_email, timestamp, status, cpu_temp, uptime_seconds, created_at, CASE
+                WHEN timestamp > NOW() - INTERVAL '3 minutes' THEN 'online'
+                WHEN timestamp > NOW() - INTERVAL '5 minutes' THEN 'warning'
+                ELSE 'offline'
+                END as connection_status, CASE
+                WHEN timestamp > NOW() - INTERVAL '3 minutes' THEN 'green'
+                WHEN timestamp > NOW() - INTERVAL '5 minutes' THEN 'yellow'
+                ELSE 'red'
+                END as visual_indicator, EXTRACT (EPOCH FROM (NOW() - timestamp))/60 as minutes_since_last_seen, EXTRACT (EPOCH FROM (NOW() - timestamp)) as seconds_since_last_seen
+            FROM latest_logs
+                )
+            SELECT device_id,
+                   connection_status,
+                   visual_indicator,
+                   ROUND(minutes_since_last_seen::numeric, 1) as minutes_since_last_seen,
+                   seconds_since_last_seen, timestamp as last_seen, status as raw_status, cpu_temp, uptime_seconds, created_at
+            FROM status_with_indicators
+            ORDER BY device_id
+        `, [user_email]);
+        const devices = statusQuery.rows;
+        // Create summary statistics
+        const summary = {
+            total_devices: devices.length,
+            online: devices.filter(d => d.connection_status === 'online').length,
+            warning: devices.filter(d => d.connection_status === 'warning').length,
+            offline: devices.filter(d => d.connection_status === 'offline').length,
+            last_updated: new Date().toISOString()
+        };
+        const response = {
+            user_email, summary, devices: devices.map(device => ({
+                device_id: device.device_id,
+                connection_status: device.connection_status,
+                visual_indicator: device.visual_indicator,
+                last_seen: device.last_seen,
+                minutes_since_last_seen: device.minutes_since_last_seen,
+                cpu_temp: device.cpu_temp,
+                uptime_seconds: device.uptime_seconds,
+                raw_status: device.raw_status,
+                health_info: {
+                    is_healthy: device.connection_status === 'online',
+                    last_heartbeat: device.last_seen,
+                    uptime_hours: device.uptime_seconds ? Math.round(device.uptime_seconds / 3600) : null
+                }
+            }))
+        };
+        logger.info("Device status indicators retrieved successfully", {
+            user_email, device_count: devices.length, summary
+        });
+        res.status(200).json(response);
+    }
+    catch (error) {
+        logger.error("Error retrieving device status indicators", {
+            error: error instanceof Error ? error.message : String(error)
+        });
+        res.status(500).send("Internal Server Error while retrieving device status indicators");
+    }
+});
+// Periodic function to check device status and send visual indicators to mobile app
+// Runs every 2 minutes to update device status indicators
+exports.checkDeviceStatusIndicators = (0, scheduler_1.onSchedule)({
+    schedule: "*/2 * * * *", timeZone: "America/Toronto"
+}, async (event) => {
+    logger.info("Starting device status indicator check");
+    try {
+        // Query to get latest device logs with status classification
+        const statusQuery = await pool.query(`
+            WITH latest_logs AS (SELECT DISTINCT
+            ON (device_id, user_email)
+                device_id,
+                user_email,
+                timestamp,
+                status,
+                cpu_temp,
+                uptime_seconds
+            FROM device_logs
+            ORDER BY device_id, user_email, timestamp DESC
+                ),
+                status_classification AS (
+            SELECT
+                device_id, user_email, timestamp, status, cpu_temp, uptime_seconds, CASE
+                WHEN timestamp > NOW() - INTERVAL '3 minutes' THEN 'online'
+                WHEN timestamp > NOW() - INTERVAL '5 minutes' THEN 'warning'
+                ELSE 'offline'
+                END as connection_status, EXTRACT (EPOCH FROM (NOW() - timestamp))/60 as minutes_since_last_seen
+            FROM latest_logs
+                )
+            SELECT *
+            FROM status_classification
+        `);
+        const devices = statusQuery.rows;
+        logger.info(`Found ${devices.length} devices to process for status indicators`);
+        // Group devices by user for efficient notification sending
+        const userDevices = devices.reduce((acc, device) => {
+            if (!acc[device.user_email]) {
+                acc[device.user_email] = [];
+            }
+            acc[device.user_email].push({
+                device_id: device.device_id,
+                connection_status: device.connection_status,
+                last_seen: device.timestamp,
+                minutes_since_last_seen: Math.round(device.minutes_since_last_seen),
+                cpu_temp: device.cpu_temp,
+                uptime_seconds: device.uptime_seconds,
+                raw_status: device.status
+            });
+            return acc;
+        }, {});
+        // Send status indicators to each user's mobile app
+        for (const [userEmail, userDeviceList] of Object.entries(userDevices)) {
+            const statusPayload = {
+                type: "device_status_update",
+                user_email: userEmail,
+                timestamp: new Date().toISOString(),
+                devices: userDeviceList,
+                summary: {
+                    total_devices: userDeviceList.length,
+                    online: userDeviceList.filter((d) => d.connection_status === 'online').length,
+                    warning: userDeviceList.filter((d) => d.connection_status === 'warning').length,
+                    offline: userDeviceList.filter((d) => d.connection_status === 'offline').length
+                }
+            };
+            // Send notification with device status indicators
+            await sendNotificationToDevice({
+                method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(statusPayload)
+            });
+            logger.info(`Sent status indicators to user: ${userEmail}`, {
+                devices: userDeviceList.length, summary: statusPayload.summary
+            });
+        }
+        logger.info("Device status indicator check completed successfully");
+    }
+    catch (error) {
+        logger.error("Error in device status indicator check", {
+            error: error instanceof Error ? error.message : String(error)
+        });
     }
 });
 //# sourceMappingURL=index.js.map

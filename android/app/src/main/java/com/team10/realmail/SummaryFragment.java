@@ -95,6 +95,7 @@ public class SummaryFragment extends Fragment {
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
     }
+
     //on creatview where the backend is happening and ,ui component intract with ch other
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -169,7 +170,7 @@ public class SummaryFragment extends Fragment {
                     }
 
 
-                    for(historyListItem item : historyList){ // history list iteration
+                    for (historyListItem item : historyList) { // history list iteration
 
                         try {
                             Instant instant = Instant.parse(item.getTimeOfOccurence()); //time of occrance
@@ -207,7 +208,7 @@ public class SummaryFragment extends Fragment {
     }
 
 
-    private void getCurrentUserName(){
+    private void getCurrentUserName() {
         String user = auth.getCurrentUser().getUid(); //store userid in string
 
         Log.d("Firestore", user);
@@ -227,7 +228,7 @@ public class SummaryFragment extends Fragment {
                             lastName = document.getString("lastName");
 
 
-                            username.setText(firstName+" "+lastName); //set the textview tpo first n last
+                            username.setText(firstName + " " + lastName); //set the textview tpo first n last
 
 
                             Log.d("Firestore", "Name: " + firstName + " " + lastName);
@@ -266,7 +267,7 @@ public class SummaryFragment extends Fragment {
                     // get the first image
                     fileRef.getDownloadUrl().addOnSuccessListener(uri -> {
 
-                       //glide is open source tool tht allow to display images
+                        //glide is open source tool tht allow to display images
                         Glide.with(getContext())
                                 .load(uri.toString())
                                 .into(sensorPicture);
