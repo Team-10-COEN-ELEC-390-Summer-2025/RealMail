@@ -1,0 +1,7 @@
+# Device Configuration File
+# Replace these values with your actual device information
+
+DEVICE_ID=123456
+USER_EMAIL=sanomihigobertin@gmail.com
+HEARTBEAT_URL=https://us-central1-realmail-39ab4.cloudfunctions.net/handleDeviceLogs
+HEARTBEAT_INTERVAL=60

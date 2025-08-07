@@ -67,9 +67,11 @@ public class HomeActivity extends AppCompatActivity {
                 Fragment fragment = null;
                 switch (tab.getPosition()) {
                     case 0:
-                        fragment = new HomeFragment();
-                        getSupportActionBar().setTitle("Camera");
-                        break;
+                        // Launch camera stream activity instead of fragment
+                        Intent cameraIntent = CameraStreamActivity.createIntent(HomeActivity.this, null);
+                        startActivity(cameraIntent);
+                        // Stay on the current tab after launching camera activity
+                        return;
                     case 1:
                         fragment = new SummaryFragment();
                         getSupportActionBar().setTitle("Summary");
@@ -129,16 +131,11 @@ public class HomeActivity extends AppCompatActivity {
             Intent intent = new Intent(HomeActivity.this, SettingsActivity.class);//click on setting incon
             // so it goes back to home
             startActivity(intent); // start setting activity
+            return true;
         }
-
 
         if (id == R.id.action_logout) {
             showLogoutConfirmation();
-            return true;
-        } else if (id == R.id.action_settings) {
-            // Handle settings if you have it
-            Intent intent = new Intent(HomeActivity.this, SettingsActivity.class);
-            startActivity(intent);
             return true;
         }
 

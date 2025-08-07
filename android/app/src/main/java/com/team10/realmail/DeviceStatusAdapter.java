@@ -28,19 +28,10 @@ public class DeviceStatusAdapter extends RecyclerView.Adapter<DeviceStatusAdapte
 
     private List<Device> devices;
     private final Context context;
-    private OnDeviceRemoveListener removeListener;
-
-    public interface OnDeviceRemoveListener {
-        void onDeviceRemove(Device device, int position);
-    }
 
     public DeviceStatusAdapter(Context context, List<Device> devices) {
         this.context = context;
         this.devices = devices;
-    }
-
-    public void setOnDeviceRemoveListener(OnDeviceRemoveListener listener) {
-        this.removeListener = listener;
     }
 
     @NonNull
@@ -93,20 +84,6 @@ public class DeviceStatusAdapter extends RecyclerView.Adapter<DeviceStatusAdapte
             holder.lastSeenText.setText(context.getString(R.string.no_heartbeat_data));
             holder.lastSeenText.setVisibility(View.VISIBLE);
         }
-
-        // Set click listener for device removal
-        holder.itemView.setOnClickListener(v -> {
-            new AlertDialog.Builder(context)
-                    .setTitle(R.string.remove_device_title)
-                    .setMessage(context.getString(R.string.remove_device_message, device.getDeviceId()))
-                    .setPositiveButton(R.string.remove, (dialog, which) -> {
-                        if (removeListener != null) {
-                            removeListener.onDeviceRemove(device, position);
-                        }
-                    })
-                    .setNegativeButton(R.string.cancel, null)
-                    .show();
-        });
 
         // Long click for device details
         holder.itemView.setOnLongClickListener(v -> {
