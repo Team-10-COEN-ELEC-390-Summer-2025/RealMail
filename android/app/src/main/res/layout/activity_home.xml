@@ -9,42 +9,41 @@
     android:orientation="vertical"
     android:background="@color/Brown">
 
-    <include
-        layout="@layout/toolbar"/>
+    <include layout="@layout/toolbar" />
 
 
-   <com.google.android.material.tabs.TabLayout
-       android:id="@+id/tablayout"
-       android:layout_width="match_parent"
-       android:layout_height="wrap_content"
-       android:background="@color/orange"
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tablayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/orange"
         app:tabIndicatorColor="@color/white"
-       app:tabSelectedTextColor="@color/white"
-       android:layout_marginTop="10dp">
+        app:tabSelectedTextColor="@color/white"
+        android:layout_marginTop="10dp">
 
-       <com.google.android.material.tabs.TabItem
-           android:id="@+id/hometab"
-           android:layout_width="wrap_content"
-           android:layout_height="wrap_content"
-           android:text="Camera"/>
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/hometab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Camera" />
 
-       <com.google.android.material.tabs.TabItem
-           android:id="@+id/summaryTab"
-           android:layout_width="wrap_content"
-           android:layout_height="wrap_content"
-           android:text="Summary"/>
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/summaryTab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Summary" />
 
-       <com.google.android.material.tabs.TabItem
-           android:id="@+id/historytab"
-           android:layout_width="wrap_content"
-           android:layout_height="wrap_content"
-           android:text="History"/>
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/historytab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="History" />
 
-   </com.google.android.material.tabs.TabLayout>
+    </com.google.android.material.tabs.TabLayout>
 
     <FrameLayout
         android:id="@+id/framelayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent" />
 
 </LinearLayout>

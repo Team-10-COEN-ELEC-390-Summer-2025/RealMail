@@ -20,4 +20,3 @@ public interface DeviceApi {
     @POST("removeDevice")
     Call<Void> removeDevice(@Body DeviceRequest request);
 }
-

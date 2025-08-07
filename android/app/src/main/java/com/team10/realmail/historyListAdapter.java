@@ -10,7 +10,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
-import java.time.format.DateTimeFormatter;
 
 public class historyListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final List<HistoryListDisplayItem> displayList;  //variable declaration

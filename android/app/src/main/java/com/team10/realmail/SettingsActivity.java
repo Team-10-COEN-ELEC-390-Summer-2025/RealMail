@@ -1,33 +1,25 @@
 package com.team10.realmail;
 
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
-import androidx.appcompat.widget.Toolbar;
-
-
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.team10.realmail.ui.settings.DeviceSettingsActivity;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -55,6 +47,7 @@ public class SettingsActivity extends AppCompatActivity {
         Button deleteAccountBtn = findViewById(R.id.button_delete_account);
         Button logoutBtn = findViewById(R.id.button_logout);
         Button manageDevicesBtn = findViewById(R.id.button_manage_devices);
+        Button setupNewDeviceBtn = findViewById(R.id.button_setup_new_device);
 
 
         prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
@@ -67,6 +60,11 @@ public class SettingsActivity extends AppCompatActivity {
 
         checkboxPush.setOnCheckedChangeListener((buttonView, isChecked) ->
                 prefs.edit().putBoolean("push_notifications", isChecked).apply());
+
+        setupNewDeviceBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(SettingsActivity.this, DeviceSetupActivity.class);
+            startActivity(intent);
+        });
 
         manageDevicesBtn.setOnClickListener(v -> {
             Intent intent = new Intent(SettingsActivity.this, DeviceSettingsActivity.class);
