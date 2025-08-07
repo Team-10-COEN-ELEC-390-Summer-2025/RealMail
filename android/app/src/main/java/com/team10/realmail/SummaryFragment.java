@@ -43,15 +43,16 @@ import retrofit2.converter.gson.GsonConverterFactory;
  * Use the {@link SummaryFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
+
 public class SummaryFragment extends Fragment {
 
-    protected TextView username, timestamp, dailyMail;
-    protected ImageView sensorPicture;
-    private FirebaseAuth auth;
+    protected TextView username, timestamp, dailyMail;//declaring textview
+    protected ImageView sensorPicture; //declaring imageview
+    private FirebaseAuth auth; //
     private FirebaseFirestore database;
     private String firstName, lastName;
-    private List<historyListItem> historyList = new ArrayList();
-    private List<historyListItem> dailyList = new ArrayList<>();
+    private List<historyListItem> historyList = new ArrayList();//list of mail items,ojects from the histroy list item
+    private List<historyListItem> dailyList = new ArrayList<>();//daily mailitem
 
 
     // TODO: Rename parameter arguments, choose names that match
@@ -94,30 +95,36 @@ public class SummaryFragment extends Fragment {
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
     }
-
+    //on creatview where the backend is happening and ,ui component intract with ch other
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
+        // Inflate the layout for this fragment,get the infor from the summary layout
         View view = inflater.inflate(R.layout.fragment_summary, container, false);
 
-        username = view.findViewById(R.id.userName);
+
+        //Finds the view with that ID in the layout
+        username = view.findViewById(R.id.userName);//
         timestamp = view.findViewById(R.id.timestamp_summary);
         sensorPicture = view.findViewById(R.id.sensorPicture);
         dailyMail = view.findViewById(R.id.dailyMail);
 
-        auth = FirebaseAuth.getInstance();//get instance
+        auth = FirebaseAuth.getInstance();//get instance of the database to insitiate of auth database
 
-        getCurrentUserName();
+        getCurrentUserName(); // function
 
+        // getting the today;date and time
         Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.HOUR_OF_DAY, 0);
-        calendar.set(Calendar.MINUTE, 0);
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
 
-        long todayInMillis = calendar.getTimeInMillis();
 
+        calendar.set(Calendar.HOUR_OF_DAY, 0);//setting the hr to zero at the beginning
+        calendar.set(Calendar.MINUTE, 0); //setting the min to zero at the beginning
+        calendar.set(Calendar.SECOND, 0); //setting the sec to zero at the beginning
+        calendar.set(Calendar.MILLISECOND, 0); //setting the mil sec to zero at the beginning
+
+        long todayInMillis = calendar.getTimeInMillis(); //getting the today's time in mili sec
+
+        //fetching the mail receive from the database
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://us-central1-realmail-39ab4.cloudfunctions.net/")
                 .addConverterFactory(GsonConverterFactory.create())
@@ -139,37 +146,39 @@ public class SummaryFragment extends Fragment {
                                 data.timestamp // Correct field for date
                         ));
 
-
+                        //try this code and if their is excetion(error) so it catches
                         try {
-
+                            //each timestemp is ISo format, tell the program ,there is date with this formate
                             SimpleDateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault());
 
-
+                            //pass the history list,first index and we get the current time occurance
                             Date date = isoFormat.parse(historyList.get(0).getTimeOfOccurence());
 
-
+                            //month day hr min am/pm
                             SimpleDateFormat desiredFormat = new SimpleDateFormat("MMM dd, h:mm a", Locale.getDefault());
                             desiredFormat.setTimeZone(TimeZone.getDefault());
 
-                            String formattedDate = desiredFormat.format(date);
+                            String formattedDate = desiredFormat.format(date);//iso format to desire format and store it format of date
 
 
-                            timestamp.setText(formattedDate);
-                        } catch (ParseException e) {
-                            throw new RuntimeException(e);
+                            timestamp.setText(formattedDate);//display format date in timestamp textview
+                        } catch (ParseException e) { //catch exception
+                            throw new RuntimeException(e); //display excption
                         }
 
                     }
 
-                    for (historyListItem item : historyList) {
+
+                    for(historyListItem item : historyList){ // history list iteration
+
                         try {
-                            Instant instant = Instant.parse(item.getTimeOfOccurence());
-                            long timestamp = instant.toEpochMilli();
+                            Instant instant = Instant.parse(item.getTimeOfOccurence()); //time of occrance
+                            long timestamp = instant.toEpochMilli();// convert time of occurance to milisec
 
                             if (timestamp >= todayInMillis) {
-                                dailyList.add(item);
+                                dailyList.add(item); //item from loop,it loops every single history list item
                             }
-                        } catch (DateTimeParseException e) {
+                        } catch (DateTimeParseException e) {// catch the error
                             e.printStackTrace();
                         }
                     }
@@ -197,24 +206,29 @@ public class SummaryFragment extends Fragment {
         return view;
     }
 
-    private void getCurrentUserName() {
-        String user = auth.getCurrentUser().getUid();
-        Log.d("Firestore", user);
-        database = FirebaseFirestore.getInstance();
 
+    private void getCurrentUserName(){
+        String user = auth.getCurrentUser().getUid(); //store userid in string
+
+        Log.d("Firestore", user);
+        database = FirebaseFirestore.getInstance();// get the info from firestore database
+
+        // go to folder and sub folder
         database.collection("users")
                 .document(user)
                 .collection("User Info")
                 .document("User Names")
-                .get()
+                .get()// get the content
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        DocumentSnapshot document = task.getResult();
-                        if (document.exists()) {
+                        DocumentSnapshot document = task.getResult(); //get the content n stor it in docu snapshot
+                        if (document.exists()) {// if docu exist, store first n last name in strings
                             firstName = document.getString("firstName");
                             lastName = document.getString("lastName");
 
-                            username.setText(firstName + " " + lastName);
+
+                            username.setText(firstName+" "+lastName); //set the textview tpo first n last
+
 
                             Log.d("Firestore", "Name: " + firstName + " " + lastName);
                         } else {
@@ -236,31 +250,33 @@ public class SummaryFragment extends Fragment {
 
             List<String> folderNames = new ArrayList<>();
             for (StorageReference prefix : listResult.getPrefixes()) {
-                folderNames.add(prefix.getName()); // e.g., 1234567890_20250802T173418
+                folderNames.add(prefix.getName());
             }
 
-            // Sort the folders in descending order (latest timestamp first)
+            // current time first
             Collections.sort(folderNames, Collections.reverseOrder());
 
-            // Get the latest folder
+            // Get latest folder
             String latestFolder = folderNames.get(0);
             StorageReference latestFolderRef = rootRef.child(latestFolder);
 
-            // List files in that folder
+            // bring the List of files in that folder
             latestFolderRef.listAll().addOnSuccessListener(folderContents -> {
                 for (StorageReference fileRef : folderContents.getItems()) {
-                    // Assume you only want the first image
+                    // get the first image
                     fileRef.getDownloadUrl().addOnSuccessListener(uri -> {
+
+                       //glide is open source tool tht allow to display images
                         Glide.with(getContext())
                                 .load(uri.toString())
                                 .into(sensorPicture);
                     });
-                    break; // Only use the first image
+                    break;
                 }
             });
 
         }).addOnFailureListener(e -> {
-            Log.e("Firebase", "Failed to list folders", e);
+            Log.e("Firebase", "Failed to list folders", e);//if it fails log the error
         });
     }
 }

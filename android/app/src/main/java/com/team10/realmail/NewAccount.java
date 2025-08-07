@@ -54,6 +54,7 @@ public class NewAccount extends AppCompatActivity {
         });
     }
 
+    //functions
     private void createAccount() {
         String email1 = email.getText().toString();
         String password1 = password.getText().toString();
@@ -61,28 +62,36 @@ public class NewAccount extends AppCompatActivity {
         String firstName1 = firstName.getText().toString();
         String lastName1 = lastName.getText().toString();
 
+        //checking passwords
         if (!password1.equals(cpassword1)) {
             Toast.makeText(this, "Passwords don't match!", Toast.LENGTH_SHORT).show();
             return;
         }
-
+        // create user with the email and password,completelisen means once task complete do someth
         auth.createUserWithEmailAndPassword(email1, password1).addOnCompleteListener(this, task -> {
             if (task.isSuccessful()) {
+                //get the currentuser
                 FirebaseUser user = auth.getCurrentUser();
                 database = FirebaseFirestore.getInstance();
+                //get the user id
                 String userID = user.getUid();
 
+                //create the map object,database saved in firestore
                 Map<String, Object> map = new HashMap<>();
 
                 map.put("firstName", firstName1);
                 map.put("lastName", lastName1);
 
+                //path in firestore
                 database.collection("users")
                         .document(userID)
                         .collection("User Info")
                         .document("User Names")
+                        //store the map in firestore
                         .set(map)
+
                         .addOnSuccessListener(aVoid -> {
+                            //add the log,
                             Log.d("Firestore", "First name successfully saved");
                         })
                         .addOnFailureListener(e -> {

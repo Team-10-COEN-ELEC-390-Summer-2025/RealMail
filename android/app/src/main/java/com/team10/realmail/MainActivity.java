@@ -51,11 +51,12 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-    protected Button signIn;
+
+    protected Button signIn;//declared variable
     protected TextView forgotpw, newaccount, lastLoginText;
     protected EditText email, password;
     String global_device_registration_token = "";
-    private FirebaseAuth auth;
+    private FirebaseAuth auth; // getting the instance from firebase
     private SharedPreferences loginPrefs;
 
     // Session duration: 1 day in milliseconds
@@ -63,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREFS_NAME = "LoginPrefs";
     private static final String LAST_LOGIN_TIME = "last_login_time";
     private static final String SESSION_EXPIRY = "session_expiry";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,9 +77,11 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+
         // Initialize SharedPreferences for session management
         loginPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
+  //link the id to the layout the objects
         signIn = findViewById(R.id.signin);
         forgotpw = findViewById(R.id.forgotpw);
         newaccount = findViewById(R.id.newaccount);
@@ -97,19 +101,20 @@ public class MainActivity extends AppCompatActivity {
         displayLastLoginTime();
 
         signIn.setOnClickListener(v -> {
-            signIn();
+            signIn(); //run signin function
         });
         forgotpw.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, ForgotPassword.class);
+            Intent intent = new Intent(MainActivity.this, ForgotPassword.class);//change the activity from  main to forgot pw
             startActivity(intent);
         });
 
         newaccount.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, NewAccount.class);
+            Intent intent = new Intent(MainActivity.this, NewAccount.class);// change the acti from main to newacc
             startActivity(intent);
         });
 
     }
+
 
     /**
      * Check if user has a valid existing session
@@ -189,16 +194,21 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "Session data cleared");
     }
 
+
+  //signin function
     private void signIn() {
         auth = FirebaseAuth.getInstance();
 
-        String email1 = email.getText().toString();
-        String password1 = password.getText().toString();
+        String email1 = email.getText().toString(); //get the content from the email edit text,to store in email
+        String password1 = password.getText().toString(); //get the content from the pw edit text,to store in pw
 
+        //sigbin attempt to firebase with the email and password
         auth.signInWithEmailAndPassword(email1, password1).addOnCompleteListener(this, task -> {
+
             if (task.isSuccessful()) {
                 // Save session data for persistence
                 saveSessionData();
+
 
                 getDeviceRegistrationToken();
                 String userEmail = task.getResult().getUser().getEmail();
@@ -212,11 +222,14 @@ public class MainActivity extends AppCompatActivity {
                 }).start();
 
                 Toast.makeText(this, "Logging in...", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                Intent intent = new Intent(MainActivity.this, HomeActivity.class);//change the activity from main to home
                 startActivity(intent);
                 finish(); // Prevent going back to login screen
             } else {
-                Toast.makeText(this, "Error logging in", Toast.LENGTH_SHORT).show();
+
+                Toast.makeText(this, "Error logging in", Toast.LENGTH_SHORT).show();//display msg
+                return;
+
             }
 
         });

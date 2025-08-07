@@ -24,9 +24,15 @@ import com.google.firebase.auth.FirebaseAuth;
 
 public class HomeActivity extends AppCompatActivity {
 
-    FrameLayout frameLayout1;
-    TabLayout tablayout1;
-    protected Toolbar toolbar;
+
+    FrameLayout frameLayout1; //whatever contents  contain in each tab
+    TabLayout tablayout1; // like different tabs ,camera ,histor and summary
+
+
+    protected Toolbar toolbar; // toolbar
+  
+   
+
 
     // Session management constants (same as MainActivity)
     private static final String PREFS_NAME = "LoginPrefs";
@@ -42,6 +48,7 @@ public class HomeActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        //initating
         toolbar = findViewById(R.id.hometoolbar);
         setSupportActionBar(toolbar);
         frameLayout1 = (FrameLayout) findViewById(R.id.framelayout); //id
@@ -52,8 +59,12 @@ public class HomeActivity extends AppCompatActivity {
                 .commit();
         getSupportActionBar().setTitle("Summary");
 
+        tablayout1.getTabAt(1).select(); // selects the second tab Summary
+
         tablayout1.setOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
+
+            //everytime click on the tab it changes the content accordlingly
             public void onTabSelected(TabLayout.Tab tab) {
                 Fragment fragment = null;
                 switch (tab.getPosition()) {
@@ -76,6 +87,7 @@ public class HomeActivity extends AppCompatActivity {
             }
 
             @Override
+            //auto genratred
             public void onTabUnselected(TabLayout.Tab tab) {
 
             }
@@ -85,7 +97,7 @@ public class HomeActivity extends AppCompatActivity {
 
             }
         });
-
+        // initating the toolbar
         toolbar = findViewById(R.id.hometoolbar);
         setSupportActionBar(toolbar);
         toolbar.setNavigationIcon(R.drawable.cam_on);
@@ -93,14 +105,30 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     @Override
+    //oncreat is inflate the menu of toolbar
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.home_menu, menu);
         return true;
     }
 
     @Override
+    //whenever click on the item toolbar it does something
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
+
+
+        if (item.getItemId() == R.id.camera) {
+
+        }
+
+        if (item.getItemId() == R.id.settings)
+        {
+            Intent intent = new Intent(HomeActivity.this, SettingsActivity.class);//click on setting incon
+            // so it goes back to home
+            startActivity(intent); // start setting activity
+        }
+
+       
 
         if (id == R.id.action_logout) {
             showLogoutConfirmation();
@@ -147,5 +175,6 @@ public class HomeActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+
     }
 }
