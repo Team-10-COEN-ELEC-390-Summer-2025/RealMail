@@ -1,5 +1,8 @@
 package com.team10.realmail;
 
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -19,7 +22,9 @@ import com.google.firebase.storage.StorageReference;
 import com.team10.realmail.api.SensorsApi;
 import com.team10.realmail.api.SensorsData;
 import com.team10.realmail.api.SensorsRequest;
+import com.team10.realmail.api.YoloDetector;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -30,6 +35,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 
 import retrofit2.Call;
@@ -53,6 +59,7 @@ public class SummaryFragment extends Fragment {
     private String firstName, lastName;
     private List<historyListItem> historyList = new ArrayList();//list of mail items,ojects from the histroy list item
     private List<historyListItem> dailyList = new ArrayList<>();//daily mailitem
+    private int numLetters, numPackages;
 
 
     // TODO: Rename parameter arguments, choose names that match
@@ -202,6 +209,23 @@ public class SummaryFragment extends Fragment {
         });
 
         fetchPicture();
+        YoloDetector yoloDetector = null;
+        try {
+            yoloDetector = new YoloDetector(getContext());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        Drawable drawable = sensorPicture.getDrawable();
+
+        if (drawable instanceof BitmapDrawable) {
+            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+            Map<String, Integer> numMail = yoloDetector.detect(bitmap);
+            yoloDetector.close();
+            numLetters = numMail.getOrDefault("Letter", 0);
+            numPackages = numMail.getOrDefault("Package", 0);
+        }
 
 
         return view;
