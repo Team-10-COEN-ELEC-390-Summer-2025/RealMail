@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
         // Initialize SharedPreferences for session management
         loginPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
-  //link the id to the layout the objects
+        //link the id to the layout the objects
         signIn = findViewById(R.id.signin);
         forgotpw = findViewById(R.id.forgotpw);
         newaccount = findViewById(R.id.newaccount);
@@ -195,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-  //signin function
+    //signin function
     private void signIn() {
         auth = FirebaseAuth.getInstance();
 

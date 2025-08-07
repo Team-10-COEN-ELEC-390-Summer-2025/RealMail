@@ -4,4 +4,22 @@
     <string name="channel_description">Channel for app notifications</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <!-- Device Status Strings -->
+    <string name="last_seen_format">Last seen: %1$s</string>
+    <string name="last_seen_minutes_format">Last seen: %1$s minutes ago</string>
+    <string name="no_heartbeat_data">No heartbeat data</string>
+    <string name="remove_device_title">Remove Device</string>
+    <string name="remove_device_message">Are you sure you want to remove device \'%1$s\'?</string>
+    <string name="remove">Remove</string>
+    <string name="cancel">Cancel</string>
+    <string name="device_details_title">Device Details</string>
+    <string name="device_id_label">Device ID: %1$s</string>
+    <string name="status_label">Status: %1$s</string>
+    <string name="last_seen_label">Last Seen: %1$s</string>
+    <string name="last_heartbeat_label">Last Heartbeat: %1$s</string>
+    <string name="last_heartbeat_time_label">Last Heartbeat Time: %1$s</string>
+    <string name="minutes_since_last_seen_label">Minutes Since Last Seen: %1$s</string>
+    <string name="cpu_temp_label">CPU Temperature: %1$s°C</string>
+    <string name="uptime_label">Uptime: %1$s seconds</string>
 </resources>

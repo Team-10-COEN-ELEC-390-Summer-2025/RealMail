@@ -5,34 +5,34 @@ import androidx.lifecycle.ViewModel;
 
 import com.team10.realmail.api.Device;
 import com.team10.realmail.api.DeviceRepository;
-import com.team10.realmail.api.DeviceRequest;
 
 import java.util.List;
 
 public class DeviceViewModel extends ViewModel {
-    private DeviceRepository deviceRepository;
+    private final DeviceRepository deviceRepository;
 
     public DeviceViewModel() {
         this.deviceRepository = DeviceRepository.getInstance();
     }
 
     public LiveData<List<Device>> getDevices(String userEmail) {
-        return deviceRepository.getDevices(userEmail);
+        deviceRepository.getDevices(userEmail);
+        return deviceRepository.getDevicesLiveData();
     }
 
     public void addDevice(String userEmail, String deviceId) {
-        deviceRepository.addDevice(new DeviceRequest(userEmail, deviceId));
+        deviceRepository.addNewDevice(userEmail, deviceId);
     }
 
     public void removeDevice(String userEmail, String deviceId) {
-        deviceRepository.removeDevice(new DeviceRequest(userEmail, deviceId));
+        deviceRepository.removeDevice(userEmail, deviceId);
     }
 
     public LiveData<Boolean> getIsLoading() {
-        return deviceRepository.getIsLoading();
+        return deviceRepository.getIsLoadingLiveData();
     }
 
     public LiveData<String> getToastMessage() {
-        return deviceRepository.getToastMessage();
+        return deviceRepository.getToastMessageLiveData();
     }
 }
