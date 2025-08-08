@@ -6,8 +6,8 @@ package com.team10.realmail;
 
 public class historyListItem {
 
-    private Boolean status;
-    private String timeOfOccurence;
+    private final Boolean status;
+    private final String timeOfOccurence;
 
     //constrcutor
     public historyListItem(Boolean status, String timeOfOccurence) {

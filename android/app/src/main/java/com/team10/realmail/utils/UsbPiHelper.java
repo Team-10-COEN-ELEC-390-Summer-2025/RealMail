@@ -28,8 +28,8 @@ public class UsbPiHelper {
     private static final String ACTION_USB_PERMISSION = "com.team10.realmail.USB_PERMISSION";
     private static final int BAUD_RATE = 115200;
 
-    private Context context;
-    private UsbManager usbManager;
+    private final Context context;
+    private final UsbManager usbManager;
     private UsbSerialPort serialPort;
     private SerialInputOutputManager serialIoManager;
 

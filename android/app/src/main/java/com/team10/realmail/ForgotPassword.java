@@ -42,25 +42,49 @@ public class ForgotPassword extends AppCompatActivity {
 
         //sent reset email when click on reset button
         reset.setOnClickListener(v -> {
-            String email1 = email.getText().toString(); //store email string
+            String email1 = email.getText().toString().trim(); //store email string
 
-            //if email is empty send a msg
+            //Add proper email validation
             if (email1.isEmpty()) {
-                Toast.makeText(this, "Please enter your email.", Toast.LENGTH_SHORT).show();
+                email.setError("Please enter your email");
+                email.requestFocus();
+                return;
             }
+
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email1).matches()) {
+                email.setError("Please enter a valid email");
+                email.requestFocus();
+                return;
+            }
+
+            // Disable button to prevent multiple submissions
+            reset.setEnabled(false);
+            reset.setText("Sending...");
+
             //send reset password email which is entered
             auth.sendPasswordResetEmail(email1).addOnCompleteListener(task -> {
+                // Re-enable button
+                reset.setEnabled(true);
+                reset.setText("Reset Password");
+
                 //if task is successful ,send msg
                 if (task.isSuccessful()) {
-                    Toast.makeText(this, "Reset password email sent", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Reset password email sent to " + email1, Toast.LENGTH_LONG).show();
+                } else {
+                    String errorMessage = "Failed to send reset email";
+                    if (task.getException() != null) {
+                        errorMessage = task.getException().getMessage();
+                    }
+                    Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
                 }
             });
-            //every time click on back to login
-            backtologin.setOnClickListener(V -> {
-                Intent intent = new Intent(ForgotPassword.this, MainActivity.class);
-                startActivity(intent); //switch one activity to another,forgot pw go bk to main acti
+        });
 
-            });
+        // Move this outside the reset button listener - it should work independently
+        backtologin.setOnClickListener(v -> {
+            Intent intent = new Intent(ForgotPassword.this, MainActivity.class);
+            startActivity(intent); //switch one activity to another,forgot pw go bk to main acti
+            finish(); // Close this activity
         });
     }
 }

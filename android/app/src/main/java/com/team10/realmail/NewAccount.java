@@ -56,54 +56,125 @@ public class NewAccount extends AppCompatActivity {
 
     //functions
     private void createAccount() {
-        String email1 = email.getText().toString();
-        String password1 = password.getText().toString();
-        String cpassword1 = cpassword.getText().toString();
-        String firstName1 = firstName.getText().toString();
-        String lastName1 = lastName.getText().toString();
+        String email1 = email.getText().toString().trim();
+        String password1 = password.getText().toString().trim();
+        String cpassword1 = cpassword.getText().toString().trim();
+        String firstName1 = firstName.getText().toString().trim();
+        String lastName1 = lastName.getText().toString().trim();
+
+        // Add comprehensive input validation
+        if (email1.isEmpty()) {
+            email.setError("Email is required");
+            email.requestFocus();
+            return;
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email1).matches()) {
+            email.setError("Please enter a valid email");
+            email.requestFocus();
+            return;
+        }
+
+        if (password1.isEmpty()) {
+            password.setError("Password is required");
+            password.requestFocus();
+            return;
+        }
+
+        if (password1.length() < 6) {
+            password.setError("Password must be at least 6 characters");
+            password.requestFocus();
+            return;
+        }
+
+        if (cpassword1.isEmpty()) {
+            cpassword.setError("Please confirm your password");
+            cpassword.requestFocus();
+            return;
+        }
+
+        if (firstName1.isEmpty()) {
+            firstName.setError("First name is required");
+            firstName.requestFocus();
+            return;
+        }
+
+        if (lastName1.isEmpty()) {
+            lastName.setError("Last name is required");
+            lastName.requestFocus();
+            return;
+        }
 
         //checking passwords
         if (!password1.equals(cpassword1)) {
+            cpassword.setError("Passwords don't match!");
+            cpassword.requestFocus();
             Toast.makeText(this, "Passwords don't match!", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        // Disable submit button to prevent multiple submissions
+        submit.setEnabled(false);
+        submit.setText("Creating Account...");
+
         // create user with the email and password,completelisen means once task complete do someth
         auth.createUserWithEmailAndPassword(email1, password1).addOnCompleteListener(this, task -> {
+            // Re-enable button regardless of outcome
+            submit.setEnabled(true);
+            submit.setText("Create Account");
+
             if (task.isSuccessful()) {
                 //get the currentuser
                 FirebaseUser user = auth.getCurrentUser();
-                database = FirebaseFirestore.getInstance();
-                //get the user id
-                String userID = user.getUid();
 
-                //create the map object,database saved in firestore
-                Map<String, Object> map = new HashMap<>();
+                if (user != null) {
+                    database = FirebaseFirestore.getInstance();
+                    //get the user id
+                    String userID = user.getUid();
 
-                map.put("firstName", firstName1);
-                map.put("lastName", lastName1);
+                    //create the map object,database saved in firestore
+                    Map<String, Object> map = new HashMap<>();
 
-                //path in firestore
-                database.collection("users")
-                        .document(userID)
-                        .collection("User Info")
-                        .document("User Names")
-                        //store the map in firestore
-                        .set(map)
+                    map.put("firstName", firstName1);
+                    map.put("lastName", lastName1);
 
-                        .addOnSuccessListener(aVoid -> {
-                            //add the log,
-                            Log.d("Firestore", "First name successfully saved");
-                        })
-                        .addOnFailureListener(e -> {
-                            Log.d("Firestore", "Saving failed " + e);
-                        });
+                    //path in firestore
+                    database.collection("users")
+                            .document(userID)
+                            .collection("User Info")
+                            .document("User Names")
+                            //store the map in firestore
+                            .set(map)
 
-                Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(NewAccount.this, MainActivity.class);
-                startActivity(intent); //go the the main activity
+                            .addOnSuccessListener(aVoid -> {
+                                //add the log,
+                                Log.d("Firestore", "User info successfully saved");
+                                Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
+                                Intent intent = new Intent(NewAccount.this, MainActivity.class);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                startActivity(intent); //go the the main activity
+                                finish();
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e("Firestore", "Saving user info failed", e);
+                                Toast.makeText(this, "Account created but failed to save user info", Toast.LENGTH_LONG).show();
+                                // Still redirect to main activity since auth was successful
+                                Intent intent = new Intent(NewAccount.this, MainActivity.class);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                startActivity(intent);
+                                finish();
+                            });
+                } else {
+                    Log.e("NewAccount", "User is null after successful authentication");
+                    Toast.makeText(this, "Error: User authentication failed", Toast.LENGTH_SHORT).show();
+                }
             } else {
-                Toast.makeText(this, "Error creating account", Toast.LENGTH_SHORT).show();
-                return;
+                String errorMessage = "Error creating account";
+                if (task.getException() != null) {
+                    errorMessage = task.getException().getMessage();
+                }
+                Log.e("NewAccount", "Account creation failed", task.getException());
+                Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
             }
         });
 

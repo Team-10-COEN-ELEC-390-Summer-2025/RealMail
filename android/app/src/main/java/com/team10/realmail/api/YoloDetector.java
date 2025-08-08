@@ -37,7 +37,8 @@ public class YoloDetector {
     }
 
     private MappedByteBuffer loadModelFile(Context ctx) throws IOException {
-        try (AssetFileDescriptor afd = ctx.getAssets().openFd("modelv1.0_32.tflite");
+        try (AssetFileDescriptor afd = ctx.getAssets().openFd("Realmailv2.0_float32.tflite");
+//        try (AssetFileDescriptor afd = ctx.getAssets().openFd("modelv1.0_32.tflite");
              FileInputStream fis = new FileInputStream(afd.getFileDescriptor());
              FileChannel fc = fis.getChannel()) {
             return fc.map(FileChannel.MapMode.READ_ONLY, afd.getStartOffset(), afd.getDeclaredLength());
@@ -113,7 +114,7 @@ public class YoloDetector {
             counts.put(label, currentCount == null ? 1 : currentCount + 1);
         }
 
-        Log.d("YOLO_DETAIL", "Final counts: " + counts.toString());
+        Log.d("YOLO_DETAIL", "Final counts: " + counts);
         return counts;
     }
 

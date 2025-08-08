@@ -41,7 +41,7 @@ public class DeviceIdInputFragment extends Fragment {
         } else if (getParentFragment() instanceof OnDeviceIdEnteredListener) {
             listener = (OnDeviceIdEnteredListener) getParentFragment();
         } else {
-            throw new RuntimeException(context.toString()
+            throw new RuntimeException(context
                     + " must implement OnDeviceIdEnteredListener");
         }
     }

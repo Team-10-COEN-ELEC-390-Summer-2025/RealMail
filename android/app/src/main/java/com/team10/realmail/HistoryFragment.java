@@ -33,8 +33,8 @@ public class HistoryFragment extends Fragment {
 
     protected RecyclerView recyclerView; //declared recycelview,adopter history
     private historyListAdapter adapter;
-    private List<historyListItem> historyList = new ArrayList<>();
-    private List<HistoryListDisplayItem> displayList = new ArrayList<>();
+    private final List<historyListItem> historyList = new ArrayList<>();
+    private final List<HistoryListDisplayItem> displayList = new ArrayList<>();
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
@@ -104,6 +104,14 @@ public class HistoryFragment extends Fragment {
         if (user != null) {
             userEmail = user.getEmail();
         }
+
+        // Add validation for user email
+        if (userEmail == null || userEmail.isEmpty()) {
+            android.util.Log.w("HistoryFragment", "User email is null or empty");
+            // You might want to show an error message or return early
+            userEmail = ""; // Provide fallback empty string
+        }
+
         SensorsRequest request = new SensorsRequest(null, userEmail);
         Call<List<SensorsData>> call = api.getSensorsWithMotionDetected(request);
         call.enqueue(new Callback<List<SensorsData>>() {
@@ -115,6 +123,12 @@ public class HistoryFragment extends Fragment {
                     Map<String, List<historyListItem>> grouped = new LinkedHashMap<>();
                     for (SensorsData data : response.body()) {
                         String deviceId = data.device_id;
+
+                        // Add null check for device_id
+                        if (deviceId == null) {
+                            deviceId = "Unknown Device";
+                        }
+
                         historyListItem item = new historyListItem(
                                 true,
                                 data.timestamp
@@ -132,12 +146,15 @@ public class HistoryFragment extends Fragment {
                         }
                     }
                     adapter.notifyDataSetChanged();
+                } else {
+                    android.util.Log.w("HistoryFragment", "Response unsuccessful or empty body");
                 }
             }
 
             @Override
             public void onFailure(Call<List<SensorsData>> call, Throwable t) {
-                // Handle error (e.g., show a Toast)
+                android.util.Log.e("HistoryFragment", "Failed to fetch history data", t);
+                // Handle error gracefully instead of silent failure
             }
         });
 
