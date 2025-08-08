@@ -41,7 +41,7 @@ public class YoloDetector {
     }
 
     private MappedByteBuffer loadModelFile(Context ctx) throws IOException {
-        AssetFileDescriptor afd = ctx.getAssets().openFd("modelv1.0_32.tflite");
+        AssetFileDescriptor afd = ctx.getAssets().openFd("Realmailv2.0_float32.tflite");
         FileInputStream fis = new FileInputStream(afd.getFileDescriptor());
         FileChannel fc = fis.getChannel();
         return fc.map(FileChannel.MapMode.READ_ONLY, afd.getStartOffset(), afd.getDeclaredLength());
