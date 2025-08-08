@@ -21,12 +21,12 @@ public class DeviceRepository {
     private static final String TAG = "DeviceRepository";
     private static final int STATUS_CHECK_INTERVAL_MINUTES = 2;
 
-    private DeviceApi deviceApi;
+    private final DeviceApi deviceApi;
     private static DeviceRepository instance;
-    private MutableLiveData<List<Device>> devicesLiveData = new MutableLiveData<>();
-    private MutableLiveData<DeviceStatusResponse> deviceStatusLiveData = new MutableLiveData<>();
-    private MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
-    private MutableLiveData<String> toastMessage = new MutableLiveData<>();
+    private final MutableLiveData<List<Device>> devicesLiveData = new MutableLiveData<>();
+    private final MutableLiveData<DeviceStatusResponse> deviceStatusLiveData = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
+    private final MutableLiveData<String> toastMessage = new MutableLiveData<>();
 
     private ScheduledExecutorService statusCheckScheduler;
     private String currentUserEmail;

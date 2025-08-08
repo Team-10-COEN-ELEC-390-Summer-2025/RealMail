@@ -122,7 +122,7 @@ public class WiFiScriptHelper {
     /**
      * Prompts user for WiFi password since Android can't retrieve saved passwords
      */
-    public static interface WiFiPasswordCallback {
+    public interface WiFiPasswordCallback {
         void onPasswordEntered(String password);
 
         void onPasswordCancelled();

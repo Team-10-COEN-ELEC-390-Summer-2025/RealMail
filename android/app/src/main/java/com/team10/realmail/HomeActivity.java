@@ -49,8 +49,8 @@ public class HomeActivity extends AppCompatActivity {
         //initating
         toolbar = findViewById(R.id.hometoolbar);
         setSupportActionBar(toolbar);
-        frameLayout1 = (FrameLayout) findViewById(R.id.framelayout); //id
-        tablayout1 = (TabLayout) findViewById(R.id.tablayout);
+        frameLayout1 = findViewById(R.id.framelayout); //id
+        tablayout1 = findViewById(R.id.tablayout);
 
 // default fragment to the home
         getSupportFragmentManager().beginTransaction().replace(R.id.framelayout, new SummaryFragment()).addToBackStack(null)

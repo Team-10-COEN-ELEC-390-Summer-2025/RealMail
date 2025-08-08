@@ -63,8 +63,8 @@ public class SummaryFragment extends Fragment {
     private FirebaseAuth auth; //
     private FirebaseFirestore database;
     private String firstName, lastName;
-    private List<historyListItem> historyList = new ArrayList();//list of mail items,ojects from the histroy list item
-    private List<historyListItem> dailyList = new ArrayList<>();//daily mailitem
+    private final List<historyListItem> historyList = new ArrayList();//list of mail items,ojects from the histroy list item
+    private final List<historyListItem> dailyList = new ArrayList<>();//daily mailitem
     private int numLetters, numPackages;
     private boolean isImageLoaded = false; // Track if image is loaded
 
@@ -162,7 +162,10 @@ public class SummaryFragment extends Fragment {
                                 true, // Always show "New Mail"
                                 data.timestamp // Correct field for date
                         ));
+                    }
 
+                    // Only process if we have data
+                    if (!historyList.isEmpty()) {
                         //try this code and if their is excetion(error) so it catches
                         try {
                             //each timestemp is ISo format, tell the program ,there is date with this formate
@@ -177,17 +180,16 @@ public class SummaryFragment extends Fragment {
 
                             String formattedDate = desiredFormat.format(date);//iso format to desire format and store it format of date
 
-
                             timestamp.setText(formattedDate);//display format date in timestamp textview
                         } catch (ParseException e) { //catch exception
-                            throw new RuntimeException(e); //display excption
+                            Log.e("SummaryFragment", "Error parsing date", e);
+                            timestamp.setText("Date unavailable");
                         }
-
+                    } else {
+                        timestamp.setText("No data available");
                     }
 
-
                     for (historyListItem item : historyList) { // history list iteration
-
                         try {
                             Instant instant = Instant.parse(item.getTimeOfOccurence()); //time of occrance
                             long timestamp = instant.toEpochMilli();// convert time of occurance to milisec
@@ -196,7 +198,7 @@ public class SummaryFragment extends Fragment {
                                 dailyList.add(item); //item from loop,it loops every single history list item
                             }
                         } catch (DateTimeParseException e) {// catch the error
-                            e.printStackTrace();
+                            Log.e("SummaryFragment", "Error parsing timestamp for daily list", e);
                         }
                     }
 
@@ -207,7 +209,9 @@ public class SummaryFragment extends Fragment {
 
             @Override
             public void onFailure(Call<List<SensorsData>> call, Throwable t) {
-                // Handle error (e.g., show a Toast)
+                Log.e("SummaryFragment", "Failed to fetch sensors data", t);
+                timestamp.setText("Failed to load data");
+                // Handle error gracefully instead of silent failure
             }
         });
 
@@ -367,21 +371,24 @@ public class SummaryFragment extends Fragment {
                             firstName = document.getString("firstName");
                             lastName = document.getString("lastName");
 
-
-                            username.setText(firstName + " " + lastName); //set the textview tpo first n last
-
+                            // Only set username after data is loaded and check for null values
+                            if (firstName != null && lastName != null) {
+                                username.setText(firstName + " " + lastName); //set the textview tpo first n last
+                            } else {
+                                username.setText("User"); // Default fallback
+                            }
 
                             Log.d("Firestore", "Name: " + firstName + " " + lastName);
                         } else {
                             Log.d("DEBUG_DOC", "Raw Document Data: " + document.getData());
                             Log.d("Firestore", "Document does not exist.");
+                            username.setText("User"); // Default fallback
                         }
                     } else {
                         Log.w("Firestore", "Failed to fetch document.", task.getException());
+                        username.setText("User"); // Default fallback
                     }
                 });
-
-        username.setText(firstName + " " + lastName);
     }
 
     private void fetchPicture() {
@@ -394,6 +401,13 @@ public class SummaryFragment extends Fragment {
                 folderNames.add(prefix.getName());
             }
 
+            // Check if we have any folders before accessing them
+            if (folderNames.isEmpty()) {
+                Log.w("SummaryFragment", "No folders found in Firebase Storage");
+                showAiStatus("❌ No images available");
+                return;
+            }
+
             // current time first
             Collections.sort(folderNames, Collections.reverseOrder());
 
@@ -403,6 +417,12 @@ public class SummaryFragment extends Fragment {
 
             // bring the List of files in that folder
             latestFolderRef.listAll().addOnSuccessListener(folderContents -> {
+                if (folderContents.getItems().isEmpty()) {
+                    Log.w("SummaryFragment", "No files found in folder: " + latestFolder);
+                    showAiStatus("❌ No images found in latest folder");
+                    return;
+                }
+
                 for (StorageReference fileRef : folderContents.getItems()) {
                     // get the first image
                     fileRef.getDownloadUrl().addOnSuccessListener(uri -> {
@@ -413,7 +433,8 @@ public class SummaryFragment extends Fragment {
                                 .listener(new RequestListener<Drawable>() {
                                     @Override
                                     public boolean onLoadFailed(GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
-                                        // Handle the error
+                                        Log.e("SummaryFragment", "Failed to load image", e);
+                                        showAiStatus("❌ Failed to load image");
                                         return false;
                                     }
 
@@ -435,13 +456,20 @@ public class SummaryFragment extends Fragment {
                                 })
                                 .into(sensorPicture);
 
+                    }).addOnFailureListener(e -> {
+                        Log.e("SummaryFragment", "Failed to get download URL", e);
+                        showAiStatus("❌ Failed to get image URL");
                     });
                     break;
                 }
+            }).addOnFailureListener(e -> {
+                Log.e("SummaryFragment", "Failed to list files in folder: " + latestFolder, e);
+                showAiStatus("❌ Failed to access folder contents");
             });
 
         }).addOnFailureListener(e -> {
-            Log.e("Firebase", "Failed to list folders", e);//if it fails log the error
+            Log.e("Firebase", "Failed to list folders", e);
+            showAiStatus("❌ Failed to connect to storage");
         });
     }
 }

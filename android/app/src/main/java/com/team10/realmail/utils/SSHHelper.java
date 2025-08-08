@@ -21,7 +21,7 @@ public class SSHHelper {
     private static final String DEFAULT_PASSWORD = "poop";
     private static final String DEFAULT_HOSTNAME = "raspberrypi";
 
-    private ExecutorService executor;
+    private final ExecutorService executor;
 
     public SSHHelper() {
         executor = Executors.newSingleThreadExecutor();

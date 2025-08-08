@@ -14,8 +14,8 @@ import java.util.List;
 
 public class DeviceAdapter extends RecyclerView.Adapter<DeviceAdapter.DeviceViewHolder> {
 
-    private List<String> devices;
-    private Context context;
+    private final List<String> devices;
+    private final Context context;
 
     public DeviceAdapter(Context context, List<String> devices) {
         this.context = context;

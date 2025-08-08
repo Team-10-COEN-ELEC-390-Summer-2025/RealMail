@@ -16,9 +16,9 @@ public class DeviceStatusService {
     private static final String PREF_USER_EMAIL = "user_email";
 
     private static DeviceStatusService instance;
-    private DeviceRepository deviceRepository;
-    private Context context;
-    private SharedPreferences preferences;
+    private final DeviceRepository deviceRepository;
+    private final Context context;
+    private final SharedPreferences preferences;
 
     private DeviceStatusService(Context context) {
         this.context = context.getApplicationContext();
