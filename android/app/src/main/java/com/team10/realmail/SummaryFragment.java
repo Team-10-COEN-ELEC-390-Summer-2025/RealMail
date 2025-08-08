@@ -1,5 +1,8 @@
 package com.team10.realmail;
 
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -7,10 +10,15 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Button;
 
 import androidx.fragment.app.Fragment;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.load.DataSource;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -19,7 +27,9 @@ import com.google.firebase.storage.StorageReference;
 import com.team10.realmail.api.SensorsApi;
 import com.team10.realmail.api.SensorsData;
 import com.team10.realmail.api.SensorsRequest;
+import com.team10.realmail.api.YoloDetector;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -30,6 +40,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 
 import retrofit2.Call;
@@ -46,13 +57,16 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class SummaryFragment extends Fragment {
 
-    protected TextView username, timestamp, dailyMail;//declaring textview
+    protected TextView username, timestamp, dailyMail, aiDetectionResults;//declaring textview
     protected ImageView sensorPicture; //declaring imageview
+    protected Button btnAiDetection; // AI detection button
     private FirebaseAuth auth; //
     private FirebaseFirestore database;
     private String firstName, lastName;
     private List<historyListItem> historyList = new ArrayList();//list of mail items,ojects from the histroy list item
     private List<historyListItem> dailyList = new ArrayList<>();//daily mailitem
+    private int numLetters, numPackages;
+    private boolean isImageLoaded = false; // Track if image is loaded
 
 
     // TODO: Rename parameter arguments, choose names that match
@@ -109,6 +123,8 @@ public class SummaryFragment extends Fragment {
         timestamp = view.findViewById(R.id.timestamp_summary);
         sensorPicture = view.findViewById(R.id.sensorPicture);
         dailyMail = view.findViewById(R.id.dailyMail);
+        aiDetectionResults = view.findViewById(R.id.aiDetectionResults); // Initialize AI results TextView
+        btnAiDetection = view.findViewById(R.id.btnAiDetection); // Initialize AI detection button
 
         auth = FirebaseAuth.getInstance();//get instance of the database to insitiate of auth database
 
@@ -184,14 +200,8 @@ public class SummaryFragment extends Fragment {
                         }
                     }
 
-                    if (dailyList.size() > 1) {
-                        dailyMail.setText(dailyList.size() + " mails");
-                    } else {
-                        dailyMail.setText(dailyList.size() + " mail");
-
-                    }
-
-
+                    // Initial count from database - will be updated after image classification
+                    updateDailyMailText();
                 }
             }
 
@@ -203,10 +213,140 @@ public class SummaryFragment extends Fragment {
 
         fetchPicture();
 
+        // Setup AI Detection button click listener
+        btnAiDetection.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isImageLoaded) {
+                    btnAiDetection.setText("🔄 Analyzing...");
+                    btnAiDetection.setEnabled(false);
+
+                    // Run detection in background thread to avoid UI blocking
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            runObjectDetection();
+
+                            // Update button text back on UI thread
+                            if (getActivity() != null) {
+                                getActivity().runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        btnAiDetection.setText("✅ Detection Complete");
+                                        btnAiDetection.setEnabled(true);
+                                    }
+                                });
+                            }
+                        }
+                    }).start();
+                } else {
+                    btnAiDetection.setText("⏳ Loading image...");
+                }
+            }
+        });
 
         return view;
     }
 
+    private void updateDailyMailText() {
+        int totalMails = dailyList.size();
+        String baseText;
+
+        if (totalMails > 1) {
+            baseText = totalMails + " mails";
+        } else {
+            baseText = totalMails + " mail";
+        }
+
+        // Keep dailyMail TextView simple - only show database count
+        dailyMail.setText(baseText);
+
+        // Update AI results in separate TextView
+        updateAiDetectionResults();
+    }
+
+    private void updateAiDetectionResults() {
+        if (numLetters > 0 || numPackages > 0) {
+            StringBuilder aiResults = new StringBuilder();
+            aiResults.append("📊 AI Detection Results:\n");
+
+            if (numLetters > 0) {
+                aiResults.append("📮 ").append(numLetters).append(numLetters == 1 ? " Letter" : " Letters");
+                if (numPackages > 0) {
+                    aiResults.append("\n");
+                }
+            }
+
+            if (numPackages > 0) {
+                aiResults.append("📦 ").append(numPackages).append(numPackages == 1 ? " Package" : " Packages");
+            }
+
+            aiDetectionResults.setText(aiResults.toString());
+            aiDetectionResults.setVisibility(View.VISIBLE);
+        } else if (numLetters == 0 && numPackages == 0) {
+            // Only show "no detection" message if detection was actually run
+            aiDetectionResults.setText("🤖 No objects detected by AI");
+            aiDetectionResults.setVisibility(View.VISIBLE);
+        } else {
+            // Hide AI results TextView if no detection has been run yet
+            aiDetectionResults.setVisibility(View.GONE);
+        }
+    }
+
+    private void showAiStatus(String statusMessage) {
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    aiDetectionResults.setText(statusMessage);
+                    aiDetectionResults.setVisibility(View.VISIBLE);
+                }
+            });
+        }
+    }
+
+    private void runObjectDetection() {
+        // Show detection status in separate AI TextView
+        showAiStatus("🔄 AI is analyzing image...");
+
+        try {
+            YoloDetector yoloDetector = new YoloDetector(getContext());
+
+            Drawable drawable = sensorPicture.getDrawable();
+            if (drawable instanceof BitmapDrawable) {
+                Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+
+                // Show image processing status
+                showAiStatus("🔄 Processing image: " + bitmap.getWidth() + "x" + bitmap.getHeight());
+
+                Map<String, Integer> detectionResults = yoloDetector.detect(bitmap);
+
+                numLetters = detectionResults.getOrDefault("Letter", 0);
+                numPackages = detectionResults.getOrDefault("Package", 0);
+
+                // Update the UI with final results
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            updateAiDetectionResults();
+                        }
+                    });
+                }
+            } else {
+                // Show error in separate AI TextView
+                showAiStatus("❌ Error: Image not ready for detection");
+            }
+
+            yoloDetector.close();
+        } catch (IOException e) {
+            // Show error in separate AI TextView
+            showAiStatus("❌ Error: Could not load AI model\n" + e.getMessage());
+        } catch (Exception e) {
+            // Show error in separate AI TextView
+            showAiStatus("❌ Detection error: " + e.getMessage());
+        }
+    }
 
     private void getCurrentUserName() {
         String user = auth.getCurrentUser().getUid(); //store userid in string
@@ -270,7 +410,31 @@ public class SummaryFragment extends Fragment {
                         //glide is open source tool tht allow to display images
                         Glide.with(getContext())
                                 .load(uri.toString())
+                                .listener(new RequestListener<Drawable>() {
+                                    @Override
+                                    public boolean onLoadFailed(GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                                        // Handle the error
+                                        return false;
+                                    }
+
+                                    @Override
+                                    public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                                        // Image is loaded, enable the AI detection button
+                                        isImageLoaded = true;
+                                        if (getActivity() != null) {
+                                            getActivity().runOnUiThread(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    btnAiDetection.setEnabled(true);
+                                                    btnAiDetection.setText("🔍 AI Smart Detection");
+                                                }
+                                            });
+                                        }
+                                        return false;
+                                    }
+                                })
                                 .into(sensorPicture);
+
                     });
                     break;
                 }

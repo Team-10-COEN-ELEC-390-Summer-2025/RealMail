@@ -58,6 +58,8 @@ dependencies {
     implementation("com.google.firebase:firebase-storage:20.3.0")
     implementation("com.jcraft:jsch:0.1.55")
     implementation("com.github.mik3y:usb-serial-for-android:3.7.3")
+    implementation("org.tensorflow:tensorflow-lite:2.13.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
