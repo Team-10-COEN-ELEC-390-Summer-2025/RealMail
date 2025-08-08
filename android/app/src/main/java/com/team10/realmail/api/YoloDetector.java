@@ -3,6 +3,7 @@ package com.team10.realmail.api;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
+import android.util.Log;
 
 import org.tensorflow.lite.Interpreter;
 
@@ -18,9 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 public class YoloDetector {
-    private static  int NUM_FEATURES = 6;    // 6 values per detection
+    private static final int NUM_FEATURES = 6;    // 6 values per detection
     private static final int NUM_CELLS = 8400;
-    private static int NUM_CLASSES = 2;
     private static final float THRESHOLD = 0.85f;
     private static final float NMS_THRESHOLD = 0.8f;
 
@@ -29,22 +29,19 @@ public class YoloDetector {
     private final Interpreter interpreter;
     private final int inputW, inputH;
 
-    private int numLetters, numPackages;
-
     public YoloDetector(Context ctx) throws IOException {
         interpreter = new Interpreter(loadModelFile(ctx));
         int[] inputShape = interpreter.getInputTensor(0).shape();
         inputH = inputShape[1];
         inputW = inputShape[2];
-
-        NUM_CLASSES = labels.length;
     }
 
     private MappedByteBuffer loadModelFile(Context ctx) throws IOException {
-        AssetFileDescriptor afd = ctx.getAssets().openFd("modelv1.0_32.tflite");
-        FileInputStream fis = new FileInputStream(afd.getFileDescriptor());
-        FileChannel fc = fis.getChannel();
-        return fc.map(FileChannel.MapMode.READ_ONLY, afd.getStartOffset(), afd.getDeclaredLength());
+        try (AssetFileDescriptor afd = ctx.getAssets().openFd("modelv1.0_32.tflite");
+             FileInputStream fis = new FileInputStream(afd.getFileDescriptor());
+             FileChannel fc = fis.getChannel()) {
+            return fc.map(FileChannel.MapMode.READ_ONLY, afd.getStartOffset(), afd.getDeclaredLength());
+        }
     }
 
     public Map<String, Integer> detect(Bitmap bmp) {
@@ -67,57 +64,56 @@ public class YoloDetector {
 
     private Map<String, Integer> processOutput(float[][] out) {
         List<Detection> dets = new ArrayList<>();
-        List<Float> Hscores = new ArrayList<>() ;
 
         float[] xc = out[0], yc = out[1], w = out[2], h = out[3], obj = out[4], cls = out[5]; // Obj = Letter conf, cls = Package conf
 
         for (int i = 0; i < NUM_CELLS; i++) {
-            float score = 0;
-            int clsIdx = -1;
-            if (obj[i] < cls[i]){
+            float score;
+            int clsIdx;
+            if (obj[i] < cls[i]) {
                 score = cls[i];
                 clsIdx = 1;
             } else {
                 score = obj[i];
-                clsIdx =0;
-
+                clsIdx = 0;
             }
-            if (score < THRESHOLD) continue;
 
-
-
-
-            Hscores.add(score);
             if (score < THRESHOLD) continue;
 
             float x0 = xc[i] - w[i] / 2;
             float y0 = yc[i] - h[i] / 2;
             dets.add(new Detection(clsIdx, score, x0, y0, w[i], h[i]));
-
-
-
-
         }
 
         return applyNMSAndCount(dets);
     }
 
     private Map<String, Integer> applyNMSAndCount(List<Detection> boxes) {
+        Log.d("YOLO_DETAIL", "Before NMS: " + boxes.size() + " detections");
         boxes.sort((a, b) -> Float.compare(b.conf, a.conf));
         List<Detection> keep = new ArrayList<>();
         for (Detection A : boxes) {
             boolean dup = false;
             for (Detection B : keep) {
-                if (iou(A, B) > NMS_THRESHOLD) { dup = true; break; }
+                if (iou(A, B) > NMS_THRESHOLD) {
+                    dup = true;
+                    break;
+                }
             }
             if (!dup) keep.add(A);
         }
 
+        Log.d("YOLO_DETAIL", "After NMS: " + keep.size() + " detections");
+
         Map<String, Integer> counts = new HashMap<>();
         for (Detection d : keep) {
             String label = labels[d.cls];
-            counts.put(labels[d.cls], counts.getOrDefault(labels[d.cls], 0) + 1);
+            Log.d("YOLO_DETAIL", "Detection: " + label + " with confidence " + d.conf);
+            Integer currentCount = counts.get(label);
+            counts.put(label, currentCount == null ? 1 : currentCount + 1);
         }
+
+        Log.d("YOLO_DETAIL", "Final counts: " + counts.toString());
         return counts;
     }
 
@@ -129,13 +125,21 @@ public class YoloDetector {
         return inter / (a.w * a.h + b.w * b.h - inter);
     }
 
-    public void close() { interpreter.close(); }
+    public void close() {
+        interpreter.close();
+    }
 
     private static class Detection {
-        int cls; float conf, x, y, w, h;
+        int cls;
+        float conf, x, y, w, h;
+
         Detection(int cls, float conf, float x, float y, float w, float h) {
-            this.cls = cls; this.conf = conf; this.x = x; this.y = y; this.w = w; this.h = h;
+            this.cls = cls;
+            this.conf = conf;
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
         }
     }
 }
-
