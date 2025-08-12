@@ -49,17 +49,7 @@ public class historyListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             historyListItem item = displayItem.item;
             itemHolder.status.setText("New Mail");
             String time = item.getTimeOfOccurence();
-            String formattedTime = "-";
-            if (time != null && !time.isEmpty()) {
-                try {
-                    java.time.Instant instant = java.time.Instant.parse(time);
-                    java.time.ZonedDateTime zdt = instant.atZone(java.time.ZoneId.systemDefault());
-                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy, hh:mm a");
-                    formattedTime = formatter.format(zdt);
-                } catch (Exception e) {
-                    formattedTime = time;
-                }
-            }
+            String formattedTime = DateFormatter.formatDateForNotification(time);
             itemHolder.time_of_occurence.setText(formattedTime);
         }
     }
