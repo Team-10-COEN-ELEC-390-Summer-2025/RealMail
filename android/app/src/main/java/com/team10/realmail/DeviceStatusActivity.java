@@ -66,6 +66,8 @@ public class DeviceStatusActivity extends AppCompatActivity {
         // Start monitoring if user is logged in
         if (userEmail != null) {
             deviceStatusService.startMonitoring(userEmail);
+            // Manually trigger an initial fetch of devices
+            deviceRepository.getDevices(userEmail);
         } else {
             statusSummaryText.setText("Please log in to view device status");
         }

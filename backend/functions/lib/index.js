@@ -575,14 +575,14 @@ exports.getDeviceStatusIndicators = (0, https_1.onRequest)(async (req, res) => {
                 status_with_indicators AS (
             SELECT
                 device_id, user_email, timestamp, status, cpu_temp, uptime_seconds, created_at, CASE
-                WHEN timestamp > NOW() AT TIME ZONE 'America/New_York - INTERVAL '3 minutes' THEN 'online'
-                WHEN timestamp > NOW() AT TIME ZONE 'America/New_York - INTERVAL '5 minutes' THEN 'warning'
+                WHEN timestamp > (NOW() AT TIME ZONE 'America/New_York') - INTERVAL '3 minutes' THEN 'online'
+                WHEN timestamp > (NOW() AT TIME ZONE 'America/New_York') - INTERVAL '5 minutes' THEN 'warning'
                 ELSE 'offline'
                 END as connection_status, CASE
-                WHEN timestamp > NOW() AT TIME ZONE 'America/New_York - INTERVAL '3 minutes' THEN 'green'
-                WHEN timestamp > NOW() AT TIME ZONE 'America/New_York - INTERVAL '5 minutes' THEN 'yellow'
+                WHEN timestamp > (NOW() AT TIME ZONE 'America/New_York') - INTERVAL '3 minutes' THEN 'green'
+                WHEN timestamp > (NOW() AT TIME ZONE 'America/New_York') - INTERVAL '5 minutes' THEN 'yellow'
                 ELSE 'red'
-                END as visual_indicator, EXTRACT (EPOCH FROM (NOW() AT TIME ZONE 'America/New_York - timestamp))/60 as minutes_since_last_seen, EXTRACT (EPOCH FROM (NOW() - timestamp)) as seconds_since_last_seen
+                END as visual_indicator, EXTRACT (EPOCH FROM ((NOW() AT TIME ZONE 'America/New_York') - timestamp))/60 as minutes_since_last_seen, EXTRACT (EPOCH FROM (NOW() - timestamp)) as seconds_since_last_seen
             FROM latest_logs
                 )
             SELECT device_id,
