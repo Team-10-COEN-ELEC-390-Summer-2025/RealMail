@@ -50,9 +50,12 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
-                    //push notification
+                    Log.d(TAG, "Notification permission granted");
+                    getDeviceRegistrationToken();
+                    Toast.makeText(this, "Notifications enabled for new mail alerts", Toast.LENGTH_SHORT).show();
                 } else {
-                    //notification not shown
+                    Log.w(TAG, "Notification permission denied");
+                    Toast.makeText(this, "Notifications disabled - you won't receive mail alerts", Toast.LENGTH_LONG).show();
                 }
             });
     protected Button signIn;//declared variable
@@ -324,14 +327,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            String CHANNEL_ID = "default_channel_id";
-            CharSequence name = getString(R.string.channel_name);
-            String description = getString(R.string.channel_description);
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            String CHANNEL_ID = "default";  // Match the service channel ID
+            CharSequence name = "Mail Notifications";
+            String description = "Notifications for new mail";
+            int importance = NotificationManager.IMPORTANCE_HIGH;  // Higher importance for mail notifications
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
             channel.setDescription(description);
+            channel.enableLights(true);
+            channel.enableVibration(true);
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
+            Log.d(TAG, "Notification channel created: " + CHANNEL_ID);
         }
     }
 
@@ -339,12 +345,20 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
                     PackageManager.PERMISSION_GRANTED) {
+                // Permission already granted, get FCM token
+                getDeviceRegistrationToken();
+                Log.d(TAG, "Notification permission already granted");
             } else if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
-
+                // Show rationale and request permission
+                Toast.makeText(this, "Notifications are needed to alert you about new mail", Toast.LENGTH_LONG).show();
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
             } else {
-
+                // Request permission directly
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
             }
+        } else {
+            // For older Android versions, get token directly since permission is granted at install time
+            getDeviceRegistrationToken();
         }
     }
 
