@@ -7,13 +7,14 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import { onRequest } from "firebase-functions/https";
+import {onRequest} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from 'firebase-admin';
-import { getAuth } from "firebase-admin/auth";
-import { getMessaging } from "firebase-admin/messaging";
+import {getAuth} from "firebase-admin/auth";
+import {getMessaging} from "firebase-admin/messaging";
 import 'dotenv/config'
-import { Pool } from "pg";
+import {Pool} from "pg";
+import {onSchedule} from "firebase-functions/v2/scheduler";
 
 
 console.log("Creating new database connection pool.");
@@ -54,7 +55,7 @@ onInit( async () => {
 
 // a dummy function to test the http
 export const handleFirebaseJWT = onRequest((req, res) => {
-    logger.info("Received request", { method: req.method, url: req.url });
+    logger.info("Received request", {method: req.method, url: req.url});
 
     // Simulate some processing
     setTimeout(() => {
@@ -76,10 +77,10 @@ export const handleFirebaseJWT = onRequest((req, res) => {
  * @param res - The HTTP response object
  */
 export const handleSensorIncomingData = onRequest(async (req, res) => {
-    logger.info("Received sensor data", { method: req.method, url: req.url });
+    logger.info("Received sensor data", {method: req.method, url: req.url});
     if (req.method !== "POST") {
         res.status(405).send("Method Not Allowed");
-        logger.warn("Method not allowed", { method: req.method });
+        logger.warn("Method not allowed", {method: req.method});
         return;
     }
     const sensorData = req.body;
@@ -91,53 +92,97 @@ export const handleSensorIncomingData = onRequest(async (req, res) => {
         */
     if (!sensorData || !sensorData.device_id || !sensorData.timeStamp || typeof sensorData.motion_detected !== "boolean" || !sensorData.user_email) {
         res.status(400).send("Bad Request: Invalid sensor data");
-        logger.error("Invalid sensor data", { data: sensorData });
+        logger.error("Invalid sensor data", {data: sensorData});
         return;
     }
     // store data in the database.
     try {
         await pool.query(`INSERT INTO public.sensors_data (device_id, timestamp, motion_detected, linked_user_email)
-                    VALUES ($1, $2, $3,
-                            $4)`, [sensorData.device_id, sensorData.timeStamp, sensorData.motion_detected, sensorData.user_email,]);
+                          VALUES ($1, $2, $3,
+                                  $4)`, [sensorData.device_id, sensorData.timeStamp, sensorData.motion_detected, sensorData.user_email,]);
     } catch (error) {
-        logger.error("Database insertion failed", { data: sensorData });
+        logger.error("Database insertion failed", {data: sensorData});
         res.status(500).send("Internal Server Error: Failed to store sensor data");
         return;
     }
 
     // once sensor data is stored, send notification to the app
-    try {
-        const response = await fetch(process.env.SERVER_URL + "/newDataNotification", {
-            method: "POST", 
-            headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify({
-                device_id: sensorData.device_id,
-                timeStamp: sensorData.timeStamp,
-                motion_detected: sensorData.motion_detected,
-                user_email: sensorData.user_email,
-            })
-        });
-        const data = await response.json();
-        console.log("Notification response:", data);
+    // try {
+    //     const response = await fetch(process.env.SERVER_URL + "/newDataNotification", {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({
+    //             device_id: sensorData.device_id,
+    //             timeStamp: sensorData.timeStamp,
+    //             motion_detected: sensorData.motion_detected,
+    //             user_email: sensorData.user_email,
+    //         })
+    //     });
+    //     const data = await response.json();
+    //     console.log("Notification response:", data);
+    //
+    // } catch (error) {
+    //     logger.error("Error sending notification", { error: error instanceof Error ? error.message : String(error) });
+    //     res.status(500).send("Internal Server Error: Failed to send notification");
+    //     return;
+    // }
+    sendNotificationToDevice({
+        method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({
+            device_id: sensorData.device_id,
+            timeStamp: sensorData.timeStamp,
+            motion_detected: sensorData.motion_detected,
+            user_email: sensorData.user_email,
+        })
+    }).then(r => {
+        // do nothing
+    });
 
-    } catch (error) {
-        logger.error("Error sending notification", { error: error instanceof Error ? error.message : String(error) });
-        res.status(500).send("Internal Server Error: Failed to send notification");
-        return;
-    }
+    // return success response
+    res.status(200).send("Sensor data received and stored successfully");
 
 });
+
+/**
+ * Formats a date to a human-readable string
+ * @param date - The date to format
+ * @returns A formatted date string like "August 7, 2025 at 6:21 PM"
+ */
+function formatDateForNotification(date: Date): string {
+    const options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZoneName: 'short'
+    };
+    return date.toLocaleDateString('en-US', options);
+}
+
+async function sendNotificationToDevice(options: RequestInit): Promise<void> {
+    // once sensor data is stored, send notification to the app
+    try {
+        const response = await fetch(process.env.SERVER_URL + "/newDataNotification", options);
+        const data = await response.json();
+        console.log("Notification response:", data);
+    } catch (error) {
+        logger.error("Error sending notification", {error: error instanceof Error ? error.message : String(error)});
+    }
+
+    return;
+}
 
 // handle JWT authentication token from Android app
 // https://firebase.google.com/docs/auth/admin/manage-users
 // https://firebase.google.com/docs/cloud-messaging/send-message
 export const verifyToken = onRequest(async (req, res) => {
-    logger.info("Received JWT authentication request", { method: req.method, url: req.url });
+    logger.info("Received JWT authentication request", {method: req.method, url: req.url});
     const jwt_token: string = req.query.token as string || req.body.token;
     const user_uid: string = req.query.uid as string || req.body.uid;
 
     if (req.method !== "POST") {
-        logger.warn("Method not allowed", { method: req.method });
+        logger.warn("Method not allowed", {method: req.method});
         res.status(405).send("Method Not Allowed");
         return;
     }
@@ -164,9 +209,9 @@ export const verifyToken = onRequest(async (req, res) => {
     } catch (error) {
         // Log the actual error and send a response to prevent timeout
         if (error instanceof Error) {
-            logger.error("Unable to save authentication details in the db", { error: error.message, stack: error.stack });
+            logger.error("Unable to save authentication details in the db", {error: error.message, stack: error.stack});
         } else {
-            logger.error("Unable to save authentication details in the db", { error: String(error) });
+            logger.error("Unable to save authentication details in the db", {error: String(error)});
         }
         res.status(500).send("Internal Server Error");
         return
@@ -174,12 +219,46 @@ export const verifyToken = onRequest(async (req, res) => {
 });
 
 
+// API below retrieve signal from sensor about online status and store in the database.
+export const updateSensorStatus = onRequest(async (req, res) => {
+    logger.info("Received request to check sensor status", {method: req.method, url: req.url});
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", {method: req.method});
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+
+    const sensorStatus = req.body; // sensorStatus schema is below
+    /*
+        "device_id": string,
+        "status": string, // "online" or "offline"
+        "user_email": string
+     */
+    if (!sensorStatus || !sensorStatus.device_id || !sensorStatus.status || !sensorStatus.user_email) {
+        logger.error("Invalid sensor status data", {data: sensorStatus});
+        res.status(400).send("Bad Request: Invalid sensor status data");
+        return;
+    }
+// insert the sensor status into the database
+    try {
+        await pool.query(`INSERT INTO sensors_online_activity (device_id, status, user_email, last_activity)
+                          VALUES ($1, $2, $3,
+                                  NOW())`, [sensorStatus.device_id, sensorStatus.status, sensorStatus.user_email]);
+    } catch (error) {
+        logger.error("Database insertion failed", {error: error instanceof Error ? error.message : String(error)});
+        res.status(500).send("Internal Server Error: Failed to insert sensor status into the database");
+        return;
+    }
+
+    res.status(200).send("Sensor status checked and notifications sent successfully");
+});
+
 // API to get device registration token from the app and store it in the database
 export const getDeviceRegistrationToken = onRequest(async (req, res) => {
-    logger.info("Received request for device registration token", { method: req.method, url: req.url });
+    logger.info("Received request for device registration token", {method: req.method, url: req.url});
     if (req.method !== "POST") {
 
-        logger.warn("Method not allowed", { method: req.method });
+        logger.warn("Method not allowed", {method: req.method});
         res.status(405).send("Method Not Allowed");
         return;
     }
@@ -200,27 +279,26 @@ export const getDeviceRegistrationToken = onRequest(async (req, res) => {
     // save the device registration token in the database
     try {
         await pool.query(`WITH updated AS (
-            UPDATE public.firebase_auth
-                SET device_registration_token = $2
-                WHERE firebase_auth_email = $1
-                RETURNING *
+        UPDATE public.firebase_auth
+        SET device_registration_token = $2
+        WHERE firebase_auth_email = $1 RETURNING *
         )
-        INSERT INTO public.firebase_auth (firebase_auth_email, device_registration_token)
-        SELECT $1, $2
-        WHERE NOT EXISTS (SELECT 1 FROM updated)`, [user_email, deviceRegistrationToken]);
+        INSERT
+        INTO public.firebase_auth (firebase_auth_email, device_registration_token)
+        SELECT $1,
+               $2 WHERE NOT EXISTS (SELECT 1 FROM updated)`, [user_email, deviceRegistrationToken]);
 
-        logger.info("Device registration token saved successfully", { user_email });
+        logger.info("Device registration token saved successfully", {user_email});
         res.status(200).send("Device registration token saved successfully");
         return;
     } catch (error) {
-        logger.error("Error saving device registration token", { error: error instanceof Error ? error.message : String(error) });
+        logger.error("Error saving device registration token", {error: error instanceof Error ? error.message : String(error)});
         res.status(500).send("Internal Server Error while saving device registration token");
         return;
     }
 
 
 });
-
 
 // api for sending push notifications to the user
 // see https://firebase.google.com/docs/cloud-messaging/server
@@ -248,52 +326,49 @@ export const newDataNotification = onRequest(async (req, res) => {
                                          FROM public.firebase_auth
                                          WHERE firebase_auth_email = $1`, [sensorData.user_email]);
         if (result.rows.length === 0) {
-            logger.warn("No device registration token found for user", { user_email: sensorData.user_email });
+            logger.warn("No device registration token found for user", {user_email: sensorData.user_email});
             res.status(404).send("Not Found: No device registration token found for this user");
             return;
         }
+
         if (!result.rows[0].device_registration_token) {
-            logger.warn("Device registration token is empty for user", { user_email: sensorData.user_email });
+            logger.warn("Device registration token is empty for user", {user_email: sensorData.user_email});
             res.status(404).send("Not Found: Device registration token is empty");
             return;
         }
         if (result.rows.length > 1) {
-            logger.warn("Multiple device registration tokens found for user", { user_email: sensorData.user_email });
+            logger.warn("Multiple device registration tokens found for user", {user_email: sensorData.user_email});
             res.status(500).send("Internal Server Error: Multiple device registration tokens found");
             return;
         }
         deviceRegistrationToken = result.rows[0].device_registration_token;
     } catch (error) {
-        logger.error("Error fetching device registration token", { error: error instanceof Error ? error.message : String(error) });
+        logger.error("Error fetching device registration token", {error: error instanceof Error ? error.message : String(error)});
         res.status(500).send("Internal Server Error while fetching device registration token");
         return;
     }
 
-    // compose json message to send to the device
+// compose json message to send to the device
     const dateOfSensorData = new Date(sensorData.timeStamp);
-    let dataInString: string;
+    let formattedDate: string;
     if (isNaN(dateOfSensorData.getTime())) {
-        dataInString = new Date().toISOString(); // if the date is invalid, use current date`
-    }
-    else {
-        dataInString = dateOfSensorData.toISOString(); // convert date to ISO string
+        formattedDate = formatDateForNotification(new Date()); // if the date is invalid, use current date
+    } else {
+        formattedDate = formatDateForNotification(dateOfSensorData); // format the date nicely
     }
     const message = {
         notification: {
-            title: "New Mail Alert",
-            body: "New mail is deposted in your mailbox on " + dataInString,
-        },
-        data: {
+            title: "New Mail Alert", body: "New mail is delivered in your mailbox on " + formattedDate,
+        }, data: {
             deviceId: String(req.body.device_id),
             timestamp: String(req.body.timeStamp),
             motionDetected: String(req.body.motion_detected),
             userEmail: String(req.body.user_email),
-        },
-        // @ts-ignore
+        }, // @ts-ignore
         token: deviceRegistrationToken,
     };
 
-    // send message to device.
+// send message to device.
     try {
         const response = await getMessaging().send(message);
         logger.info("Successfully sent message:", response);
@@ -302,5 +377,380 @@ export const newDataNotification = onRequest(async (req, res) => {
         res.status(500).send("Failed to send notification");
         return;
     }
-    res.status(200).send("Notification sent successfully");
+    res.status(200).send("Notification sent successfully")
+})
+
+
+// API below when called it will need user_email then returns all sensors where motion_detected is true
+export const getSensorsWithMotionDetected = onRequest(async (req, res) => {
+    logger.info("Received request to get sensors with motion detected", {method: req.method, url: req.url});
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", {method: req.method});
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+
+    const {user_email} = req.body;
+    if (!user_email) {
+        logger.error("Missing user's email  in request");
+        res.status(400).send("Bad Request: Missing device_id or user_email");
+        return;
+    }
+
+    try {
+        const result = await pool.query(`SELECT *
+                                         FROM sensors_data
+                                         WHERE linked_user_email = $1
+                                           AND motion_detected = true
+                                         ORDER BY timestamp DESC`, [user_email]);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        logger.error("Error fetching sensors with motion detected", {error: error instanceof Error ? error.message : String(error)});
+        res.status(500).send("Internal Server Error while fetching sensors with motion detected");
+    }
+});
+
+
+// the API below adds a new device to the database, tables = sensors_data
+export const addNewDevice = onRequest(async (req, res) => {
+    logger.info("Received request to add new device", {method: req.method, url: req.url});
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", {method: req.method});
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+
+    /* data expected is
+        * device_id: string, // unique identifier for the device
+        * user_email: string // email of the user who owns the device
+     */
+
+
+    const {device_id, user_email} = req.body;
+    if (!device_id || !user_email) {
+        logger.error("Missing device_id or user_email in request");
+        res.status(400).send("Bad Request: Missing device_id or user_email");
+        return;
+    }
+
+    try {
+        await pool.query(`INSERT INTO sensors_data (device_id, linked_user_email)
+                          VALUES ($1, $2)`, [device_id, user_email]);
+        res.status(200).send("Device added successfully");
+    } catch (error) {
+        logger.error("Error adding new device", {error: error instanceof Error ? error.message : String(error)});
+        res.status(500).send("Internal Server Error. Unable to add new device " + device_id + " for this user " + user_email);
+    }
+});
+
+// API to remove a device from the database
+export const removeDevice = onRequest(async (req, res) => {
+    logger.info("Received request to remove device", {method: req.method, url: req.url});
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", {method: req.method});
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    /* data expected is
+        * device_id: string, // unique identifier for the device
+        * user_email: string // email of the user who owns the device
+     */
+
+
+    const {device_id, user_email} = req.body;
+    if (!device_id || !user_email) {
+        logger.error("Missing device_id or user_email in request");
+        res.status(400).send("Bad Request: Missing device_id or user_email");
+        return;
+    }
+
+    try {
+        await pool.query(`DELETE
+                          FROM sensors_data
+                          WHERE device_id = $1
+                            AND linked_user_email = $2`, [device_id, user_email]);
+        res.status(200).send("Device removed successfully");
+    } catch (error) {
+        logger.error("Error removing device", {error: error instanceof Error ? error.message : String(error)});
+        res.status(500).send("Internal Server Error. Unable to remove device " + device_id + " for this user " + user_email);
+    }
+});
+
+// API to get all devices for a user
+export const getAllDevicesForUser = onRequest(async (req, res) => {
+    logger.info("Received request to get all devices for user", {method: req.method, url: req.url});
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", {method: req.method});
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+
+    const {user_email} = req.body;
+    if (!user_email) {
+        logger.error("Missing user_email in request");
+        res.status(400).send("Bad Request: Missing user_email");
+        return;
+    }
+
+    try {
+        const result = await pool.query(`
+            SELECT DISTINCT device_id
+            FROM sensors_data
+            WHERE linked_user_email = $1`, [user_email]);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        logger.error("Error fetching devices for user", {error: error instanceof Error ? error.message : String(error)});
+        res.status(500).send("Internal Server Error while fetching devices for user");
+    }
+});
+
+// API to handle device log data from Raspberry Pi devices
+export const handleDeviceLogs = onRequest(async (req, res) => {
+    logger.info("Received device log request", {method: req.method, url: req.url});
+
+    // Only accept POST requests
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", {method: req.method});
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+
+    try {
+        const {
+            device_id, user_email, timestamp, status, system_info
+        } = req.body;
+
+        // Validate required fields
+        if (!device_id || !user_email || !timestamp || !status) {
+            logger.error("Missing required fields in device log request", {data: req.body});
+            res.status(400).send("Bad Request: Missing required fields: device_id, user_email, timestamp, status");
+            return;
+        }
+
+        // Extract system_info fields
+        const cpu_temp = system_info?.cpu_temp || null;
+        const uptime_seconds = system_info?.uptime_seconds || null;
+        const system_timestamp = system_info?.timestamp || null;
+
+        // Convert timestamp strings to Date objects for database insertion
+        const deviceTimestamp = new Date(timestamp);
+        const systemTimestampDate = system_timestamp ? new Date(system_timestamp) : null;
+
+        // Insert device log data into database
+        await pool.query(`
+            INSERT INTO device_logs (device_id, user_email, timestamp, status, cpu_temp, uptime_seconds,
+                                     system_timestamp)
+            VALUES ($1, $2, $3, $4, $5, $6,
+                    $7)`, [device_id, user_email, deviceTimestamp, status, cpu_temp, uptime_seconds, systemTimestampDate]);
+
+        logger.info("Device log data stored successfully", {
+            device_id, user_email, status, timestamp: deviceTimestamp.toISOString()
+        });
+
+        res.status(200).send("Device log data received and stored successfully");
+
+    } catch (error) {
+        logger.error("Error handling device log data", {
+            error: error instanceof Error ? error.message : String(error), data: req.body
+        });
+        res.status(500).send("Internal Server Error while processing device log data");
+    }
+});
+
+// API to get current device status indicators for a user
+export const getDeviceStatusIndicators = onRequest(async (req, res) => {
+    logger.info("Received request for device status indicators", {method: req.method, url: req.url});
+
+    if (req.method !== "POST") {
+        logger.warn("Method not allowed", {method: req.method});
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+
+    try {
+        const {user_email} = req.body;
+
+        if (!user_email) {
+            logger.error("Missing user_email in device status request");
+            res.status(400).send("Bad Request: Missing user_email");
+            return;
+        }
+
+        // Query to get latest device status with visual indicators
+        const statusQuery = await pool.query(`
+            WITH latest_logs AS (SELECT DISTINCT
+            ON (device_id)
+                device_id,
+                user_email,
+                timestamp,
+                status,
+                cpu_temp,
+                uptime_seconds,
+                created_at
+            FROM device_logs
+            WHERE user_email = $1
+            ORDER BY device_id, timestamp DESC
+                ),
+                status_with_indicators AS (
+            SELECT
+                device_id, user_email, timestamp, status, cpu_temp, uptime_seconds, created_at, CASE
+                WHEN timestamp > NOW() - INTERVAL '3 minutes' THEN 'online'
+                WHEN timestamp > NOW() - INTERVAL '5 minutes' THEN 'warning'
+                ELSE 'offline'
+                END as connection_status, CASE
+                WHEN timestamp > NOW() - INTERVAL '3 minutes' THEN 'green'
+                WHEN timestamp > NOW() - INTERVAL '5 minutes' THEN 'yellow'
+                ELSE 'red'
+                END as visual_indicator, EXTRACT (EPOCH FROM (NOW() - timestamp))/60 as minutes_since_last_seen, EXTRACT (EPOCH FROM (NOW() - timestamp)) as seconds_since_last_seen
+            FROM latest_logs
+                )
+            SELECT device_id,
+                   connection_status,
+                   visual_indicator,
+                   ROUND(minutes_since_last_seen::numeric, 1) as minutes_since_last_seen,
+                   seconds_since_last_seen, timestamp as last_seen, status as raw_status, cpu_temp, uptime_seconds, created_at
+            FROM status_with_indicators
+            ORDER BY device_id
+        `, [user_email]);
+
+        const devices = statusQuery.rows;
+
+        // Create summary statistics
+        const summary = {
+            total_devices: devices.length,
+            online: devices.filter(d => d.connection_status === 'online').length,
+            warning: devices.filter(d => d.connection_status === 'warning').length,
+            offline: devices.filter(d => d.connection_status === 'offline').length,
+            last_updated: new Date().toISOString()
+        };
+
+        const response = {
+            user_email, summary, devices: devices.map(device => ({
+                device_id: device.device_id,
+                connection_status: device.connection_status,
+                visual_indicator: device.visual_indicator,
+                last_seen: device.last_seen,
+                minutes_since_last_seen: device.minutes_since_last_seen,
+                cpu_temp: device.cpu_temp,
+                uptime_seconds: device.uptime_seconds,
+                raw_status: device.raw_status,
+                health_info: {
+                    is_healthy: device.connection_status === 'online',
+                    last_heartbeat: device.last_seen,
+                    uptime_hours: device.uptime_seconds ? Math.round(device.uptime_seconds / 3600) : null
+                }
+            }))
+        };
+
+        logger.info("Device status indicators retrieved successfully", {
+            user_email, device_count: devices.length, summary
+        });
+
+        res.status(200).json(response);
+
+    } catch (error) {
+        logger.error("Error retrieving device status indicators", {
+            error: error instanceof Error ? error.message : String(error)
+        });
+        res.status(500).send("Internal Server Error while retrieving device status indicators");
+    }
+});
+
+// Periodic function to check device status and send visual indicators to mobile app
+// Runs every 2 minutes to update device status indicators
+export const checkDeviceStatusIndicators = onSchedule({
+    schedule: "*/2 * * * *", timeZone: "America/Toronto"
+}, async (event) => {
+    logger.info("Starting device status indicator check");
+
+    try {
+        // Query to get latest device logs with status classification
+        const statusQuery = await pool.query(`
+            WITH latest_logs AS (SELECT DISTINCT
+            ON (device_id, user_email)
+                device_id,
+                user_email,
+                timestamp,
+                status,
+                cpu_temp,
+                uptime_seconds
+            FROM device_logs
+            ORDER BY device_id, user_email, timestamp DESC
+                ),
+                status_classification AS (
+            SELECT
+                device_id, user_email, timestamp, status, cpu_temp, uptime_seconds, CASE
+                WHEN timestamp > NOW() - INTERVAL '3 minutes' THEN 'online'
+                WHEN timestamp > NOW() - INTERVAL '5 minutes' THEN 'warning'
+                ELSE 'offline'
+                END as connection_status, EXTRACT (EPOCH FROM (NOW() - timestamp))/60 as minutes_since_last_seen
+            FROM latest_logs
+                )
+            SELECT *
+            FROM status_classification
+        `);
+
+        const devices = statusQuery.rows;
+        logger.info(`Found ${devices.length} devices to process for status indicators`);
+
+        // Define type for device status
+        type DeviceStatus = {
+            device_id: string;
+            connection_status: string;
+            last_seen: Date;
+            minutes_since_last_seen: number;
+            cpu_temp: number;
+            uptime_seconds: number;
+            raw_status: string;
+        };
+
+        // Group devices by user for efficient notification sending
+        const userDevices: Record<string, DeviceStatus[]> = devices.reduce((acc, device) => {
+            if (!acc[device.user_email]) {
+                acc[device.user_email] = [];
+            }
+            acc[device.user_email].push({
+                device_id: device.device_id,
+                connection_status: device.connection_status,
+                last_seen: device.timestamp,
+                minutes_since_last_seen: Math.round(device.minutes_since_last_seen),
+                cpu_temp: device.cpu_temp,
+                uptime_seconds: device.uptime_seconds,
+                raw_status: device.status
+            });
+            return acc;
+        }, {} as Record<string, DeviceStatus[]>);
+
+        // Send status indicators to each user's mobile app
+        for (const [userEmail, userDeviceList] of Object.entries(userDevices) as [string, DeviceStatus[]][]) {
+            const statusPayload = {
+                type: "device_status_update",
+                user_email: userEmail,
+                timestamp: new Date().toISOString(),
+                devices: userDeviceList,
+                summary: {
+                    total_devices: userDeviceList.length,
+                    online: userDeviceList.filter((d: DeviceStatus) => d.connection_status === 'online').length,
+                    warning: userDeviceList.filter((d: DeviceStatus) => d.connection_status === 'warning').length,
+                    offline: userDeviceList.filter((d: DeviceStatus) => d.connection_status === 'offline').length
+                }
+            };
+
+            // Send notification with device status indicators
+            await sendNotificationToDevice({
+                method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(statusPayload)
+            });
+
+            logger.info(`Sent status indicators to user: ${userEmail}`, {
+                devices: userDeviceList.length, summary: statusPayload.summary
+            });
+        }
+
+        logger.info("Device status indicator check completed successfully");
+
+    } catch (error) {
+        logger.error("Error in device status indicator check", {
+            error: error instanceof Error ? error.message : String(error)
+        });
+    }
 });

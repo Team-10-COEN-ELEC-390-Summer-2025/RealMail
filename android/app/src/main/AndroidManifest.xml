@@ -2,6 +2,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Permissions for USB device access -->
+    <uses-permission android:name="android.permission.USB_PERMISSION" />
+    <uses-feature android:name="android.hardware.usb.host" />
+
+    <!-- Permissions for WiFi access -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Required for getting WiFi SSID on Android 8.1+ -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- Permission for WebView internet access -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -12,12 +29,27 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.RealMail"
         tools:targetApi="31">
+
+        <activity
+            android:name=".DeviceSetupActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CameraStreamActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/Theme.RealMail" />
+        <activity
+            android:name=".DeviceStatusActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.settings.DeviceSettingsActivity"
+            android:exported="false" />
         <activity
             android:name=".SettingsActivity"
             android:exported="false" />
-        <activity
-            android:name=".HistoryActivity"
-            android:exported="false" />
+        <!--        <activity-->
+        <!--            android:name=".HistoryActivity"-->
+        <!--            android:exported="false" />-->
         <activity
             android:name=".HomeActivity"
             android:exported="false" />
@@ -36,16 +68,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <service
             android:name=".notifications.NewMailNotificationService"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="default_channel_id"/>
+            android:value="default_channel_id" />
 
     </application>
 

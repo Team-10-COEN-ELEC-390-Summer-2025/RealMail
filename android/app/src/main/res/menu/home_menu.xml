@@ -3,9 +3,27 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/camera"
+        android:title="Camera"
+        android:icon="@android:drawable/ic_menu_camera"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/device_status"
+        android:title="Device Status"
+        android:icon="@android:drawable/ic_dialog_info"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/settings"
         android:title="Settings"
-        app:showAsAction="always"
-        android:icon="@drawable/settings"/>
+        android:icon="@android:drawable/ic_menu_preferences"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_logout"
+        android:title="Logout"
+        android:icon="@android:drawable/ic_menu_close_clear_cancel"
+        app:showAsAction="never" />
 
 </menu>

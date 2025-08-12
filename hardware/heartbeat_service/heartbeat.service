@@ -1,0 +1,28 @@
+[Unit]
+Description=Raspberry Pi Heartbeat Service
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User=pi
+WorkingDirectory=/home/pi/RealMail/hardware
+ExecStart=/usr/bin/python3 /home/pi/RealMail/hardware/heartbeat_service.py
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=heartbeat-service
+
+# Environment variables
+Environment=PYTHONUNBUFFERED=1
+
+# Security settings
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/log
+
+[Install]
+WantedBy=multi-user.target
