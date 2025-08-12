@@ -15,14 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.team10.realmail.api.Device;
 import com.team10.realmail.api.DeviceStatusService;
 
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 public class DeviceStatusAdapter extends RecyclerView.Adapter<DeviceStatusAdapter.DeviceViewHolder> {
 
@@ -125,18 +118,7 @@ public class DeviceStatusAdapter extends RecyclerView.Adapter<DeviceStatusAdapte
      * Converts "2025-08-07T10:15:30.000Z" to "Aug 07, 10:15 AM"
      */
     private String formatLastSeenDate(String isoDateString) {
-        try {
-            // Parse the ISO 8601 date string
-            Instant instant = Instant.parse(isoDateString);
-            LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
-
-            // Format to readable format
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, hh:mm a", Locale.getDefault());
-            return localDateTime.format(formatter);
-        } catch (Exception e) {
-            // If parsing fails, return the original string
-            return isoDateString;
-        }
+        return DateFormatter.formatDateForNotification(isoDateString);
     }
 
     @Override
