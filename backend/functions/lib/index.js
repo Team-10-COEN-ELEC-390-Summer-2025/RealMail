@@ -40,8 +40,11 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkDeviceStatusIndicators = exports.getDeviceStatusIndicators = exports.handleDeviceLogs = exports.getAllDevicesForUser = exports.removeDevice = exports.addNewDevice = exports.getSensorsWithMotionDetected = exports.newDataNotification = exports.getDeviceRegistrationToken = exports.updateSensorStatus = exports.verifyToken = exports.handleSensorIncomingData = exports.handleFirebaseJWT = void 0;
+exports.getStreamingStatus = exports.stopStreaming = exports.startStreaming = exports.checkDeviceStatusIndicators = exports.getDeviceStatusIndicators = exports.handleDeviceLogs = exports.getAllDevicesForUser = exports.removeDevice = exports.addNewDevice = exports.getSensorsWithMotionDetected = exports.newDataNotification = exports.getDeviceRegistrationToken = exports.updateSensorStatus = exports.verifyToken = exports.handleSensorIncomingData = exports.handleFirebaseJWT = void 0;
 const https_1 = require("firebase-functions/https");
 const logger = __importStar(require("firebase-functions/logger"));
 const admin = __importStar(require("firebase-admin"));
@@ -50,6 +53,7 @@ const messaging_1 = require("firebase-admin/messaging");
 require("dotenv/config");
 const pg_1 = require("pg");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
+const node_fetch_1 = __importDefault(require("node-fetch"));
 console.log("Creating new database connection pool.");
 console.log("DB_NAME:", process.env.DB_NAME); // Add this for debugging
 const pool = new pg_1.Pool({
@@ -183,7 +187,7 @@ function formatDateForNotification(date) {
 async function sendNotificationToDevice(options) {
     // once sensor data is stored, send notification to the app
     try {
-        const response = await fetch(process.env.SERVER_URL + "/newDataNotification", options);
+        const response = await (0, node_fetch_1.default)(process.env.SERVER_URL + "/newDataNotification", Object.assign(Object.assign({}, options), { body: options.body || undefined }));
         const data = await response.json();
         console.log("Notification response:", data);
     }
@@ -676,26 +680,13 @@ exports.checkDeviceStatusIndicators = (0, scheduler_1.onSchedule)({
             });
             return acc;
         }, {});
-        // Send status indicators to each user's mobile app
+        // Process device status indicators for each user
         for (const [userEmail, userDeviceList] of Object.entries(userDevices)) {
-            const statusPayload = {
-                type: "device_status_update",
-                user_email: userEmail,
-                timestamp: new Date().toISOString(),
-                devices: userDeviceList,
-                summary: {
-                    total_devices: userDeviceList.length,
-                    online: userDeviceList.filter((d) => d.connection_status === 'online').length,
-                    warning: userDeviceList.filter((d) => d.connection_status === 'warning').length,
-                    offline: userDeviceList.filter((d) => d.connection_status === 'offline').length
-                }
-            };
-            // Send notification with device status indicators
-            await sendNotificationToDevice({
-                method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(statusPayload)
-            });
-            logger.info(`Sent status indicators to user: ${userEmail}`, {
-                devices: userDeviceList.length, summary: statusPayload.summary
+            logger.info(`Processed status indicators for user: ${userEmail}`, {
+                devices: userDeviceList.length,
+                online: userDeviceList.filter((d) => d.connection_status === 'online').length,
+                warning: userDeviceList.filter((d) => d.connection_status === 'warning').length,
+                offline: userDeviceList.filter((d) => d.connection_status === 'offline').length
             });
         }
         logger.info("Device status indicator check completed successfully");
@@ -703,6 +694,267 @@ exports.checkDeviceStatusIndicators = (0, scheduler_1.onSchedule)({
     catch (error) {
         logger.error("Error in device status indicator check", {
             error: error instanceof Error ? error.message : String(error)
+        });
+    }
+});
+/**
+ * Start camera streaming for a specific device
+ * URL: https://us-central1-realmail-39ab4.cloudfunctions.net/startStreaming/{device_id}
+ */
+exports.startStreaming = (0, https_1.onRequest)(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    try {
+        const deviceId = req.path.split('/')[1]; // Extract device_id from path
+        if (!deviceId) {
+            res.status(400).json({
+                success: false,
+                error: 'Device ID is required'
+            });
+            return;
+        }
+        logger.info(`Starting streaming for device: ${deviceId}`);
+        // Look up device IP address from database
+        const deviceQuery = `SELECT device_id, ip_address FROM devices WHERE device_id = $1`;
+        const deviceResult = await pool.query(deviceQuery, [deviceId]);
+        if (deviceResult.rows.length === 0) {
+            logger.warn(`Device not found: ${deviceId}`);
+            res.status(404).json({
+                success: false,
+                error: 'Device not found'
+            });
+            return;
+        }
+        const device = deviceResult.rows[0];
+        const deviceIp = device.ip_address;
+        if (!deviceIp) {
+            logger.warn(`Device IP not available: ${deviceId}`);
+            res.status(400).json({
+                success: false,
+                error: 'Device IP address not available'
+            });
+            return;
+        }
+        // Call the device's streaming service API
+        const streamingUrl = `http://${deviceIp}:8080/start_streaming/${deviceId}`;
+        logger.info(`Calling streaming API: ${streamingUrl}`);
+        const response = await (0, node_fetch_1.default)(streamingUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            timeout: 10000 // 10 second timeout
+        });
+        const responseData = await response.json();
+        if (response.ok) {
+            logger.info(`Successfully started streaming for device: ${deviceId}`, responseData);
+            res.status(200).json({
+                success: true,
+                message: 'Streaming started successfully',
+                device_id: deviceId,
+                device_ip: deviceIp,
+                data: responseData
+            });
+        }
+        else {
+            logger.error(`Failed to start streaming for device: ${deviceId}`, {
+                status: response.status,
+                data: responseData
+            });
+            res.status(502).json({
+                success: false,
+                error: 'Failed to start streaming on device',
+                device_response: responseData
+            });
+        }
+    }
+    catch (error) {
+        logger.error('Error in startStreaming function', {
+            error: error instanceof Error ? error.message : String(error)
+        });
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+});
+/**
+ * Stop camera streaming for a specific device
+ * URL: https://us-central1-realmail-39ab4.cloudfunctions.net/stopStreaming/{device_id}
+ */
+exports.stopStreaming = (0, https_1.onRequest)(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    try {
+        const deviceId = req.path.split('/')[1]; // Extract device_id from path
+        if (!deviceId) {
+            res.status(400).json({
+                success: false,
+                error: 'Device ID is required'
+            });
+            return;
+        }
+        logger.info(`Stopping streaming for device: ${deviceId}`);
+        // Look up device IP address from database
+        const deviceQuery = `SELECT device_id, ip_address FROM devices WHERE device_id = $1`;
+        const deviceResult = await pool.query(deviceQuery, [deviceId]);
+        if (deviceResult.rows.length === 0) {
+            logger.warn(`Device not found: ${deviceId}`);
+            res.status(404).json({
+                success: false,
+                error: 'Device not found'
+            });
+            return;
+        }
+        const device = deviceResult.rows[0];
+        const deviceIp = device.ip_address;
+        if (!deviceIp) {
+            logger.warn(`Device IP not available: ${deviceId}`);
+            res.status(400).json({
+                success: false,
+                error: 'Device IP address not available'
+            });
+            return;
+        }
+        // Call the device's streaming service API
+        const streamingUrl = `http://${deviceIp}:8080/stop_streaming/${deviceId}`;
+        logger.info(`Calling streaming API: ${streamingUrl}`);
+        const response = await (0, node_fetch_1.default)(streamingUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            timeout: 10000 // 10 second timeout
+        });
+        const responseData = await response.json();
+        if (response.ok) {
+            logger.info(`Successfully stopped streaming for device: ${deviceId}`, responseData);
+            res.status(200).json({
+                success: true,
+                message: 'Streaming stopped successfully',
+                device_id: deviceId,
+                device_ip: deviceIp,
+                data: responseData
+            });
+        }
+        else {
+            logger.error(`Failed to stop streaming for device: ${deviceId}`, {
+                status: response.status,
+                data: responseData
+            });
+            res.status(502).json({
+                success: false,
+                error: 'Failed to stop streaming on device',
+                device_response: responseData
+            });
+        }
+    }
+    catch (error) {
+        logger.error('Error in stopStreaming function', {
+            error: error instanceof Error ? error.message : String(error)
+        });
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+});
+/**
+ * Get streaming status for a specific device
+ * URL: https://us-central1-realmail-39ab4.cloudfunctions.net/getStreamingStatus/{device_id}
+ */
+exports.getStreamingStatus = (0, https_1.onRequest)(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    try {
+        const deviceId = req.path.split('/')[1]; // Extract device_id from path
+        if (!deviceId) {
+            res.status(400).json({
+                success: false,
+                error: 'Device ID is required'
+            });
+            return;
+        }
+        logger.info(`Getting streaming status for device: ${deviceId}`);
+        // Look up device IP address from database
+        const deviceQuery = `SELECT device_id, ip_address FROM devices WHERE device_id = $1`;
+        const deviceResult = await pool.query(deviceQuery, [deviceId]);
+        if (deviceResult.rows.length === 0) {
+            logger.warn(`Device not found: ${deviceId}`);
+            res.status(404).json({
+                success: false,
+                error: 'Device not found'
+            });
+            return;
+        }
+        const device = deviceResult.rows[0];
+        const deviceIp = device.ip_address;
+        if (!deviceIp) {
+            logger.warn(`Device IP not available: ${deviceId}`);
+            res.status(200).json({
+                success: true,
+                device_id: deviceId,
+                streaming: false,
+                camera_active: false,
+                error: 'Device IP not available'
+            });
+            return;
+        }
+        // Call the device's status API
+        const statusUrl = `http://${deviceIp}:8080/status/${deviceId}`;
+        logger.info(`Calling status API: ${statusUrl}`);
+        const response = await (0, node_fetch_1.default)(statusUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            timeout: 5000 // 5 second timeout
+        });
+        if (response.ok) {
+            const responseData = await response.json();
+            logger.info(`Successfully got streaming status for device: ${deviceId}`, responseData);
+            res.status(200).json(Object.assign({ success: true, device_id: deviceId, device_ip: deviceIp }, responseData));
+        }
+        else {
+            logger.warn(`Device streaming service not responding: ${deviceId}`, {
+                status: response.status
+            });
+            res.status(200).json({
+                success: true,
+                device_id: deviceId,
+                device_ip: deviceIp,
+                streaming: false,
+                camera_active: false,
+                error: 'Streaming service not responding'
+            });
+        }
+    }
+    catch (error) {
+        logger.warn('Error getting streaming status', {
+            error: error instanceof Error ? error.message : String(error)
+        });
+        // Return offline status instead of error
+        res.status(200).json({
+            success: true,
+            device_id: req.path.split('/')[1],
+            streaming: false,
+            camera_active: false,
+            error: 'Device not accessible'
         });
     }
 });
