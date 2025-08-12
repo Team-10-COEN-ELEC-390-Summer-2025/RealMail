@@ -156,6 +156,7 @@ function formatDateForNotification(date: Date): string {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true,
+        timeZone: 'America/New_York', // Set the timezone to Eastern Time
         timeZoneName: 'short'
     };
     return date.toLocaleDateString('en-US', options);
@@ -247,7 +248,7 @@ export const updateSensorStatus = onRequest(async (req, res) => {
     try {
         await pool.query(`INSERT INTO sensors_online_activity (device_id, status, user_email, last_activity)
                           VALUES ($1, $2, $3,
-                                  NOW())`, [sensorStatus.device_id, sensorStatus.status, sensorStatus.user_email]);
+                                  NOW() AT TIME ZONE 'America/New_York')`, [sensorStatus.device_id, sensorStatus.status, sensorStatus.user_email]);
     } catch (error) {
         logger.error("Database insertion failed", {error: error instanceof Error ? error.message : String(error)});
         res.status(500).send("Internal Server Error: Failed to insert sensor status into the database");
@@ -598,14 +599,14 @@ export const getDeviceStatusIndicators = onRequest(async (req, res) => {
                 status_with_indicators AS (
             SELECT
                 device_id, user_email, timestamp, status, cpu_temp, uptime_seconds, created_at, CASE
-                WHEN timestamp > NOW() - INTERVAL '3 minutes' THEN 'online'
-                WHEN timestamp > NOW() - INTERVAL '5 minutes' THEN 'warning'
+                WHEN timestamp > NOW() AT TIME ZONE 'America/New_York - INTERVAL '3 minutes' THEN 'online'
+                WHEN timestamp > NOW() AT TIME ZONE 'America/New_York - INTERVAL '5 minutes' THEN 'warning'
                 ELSE 'offline'
                 END as connection_status, CASE
-                WHEN timestamp > NOW() - INTERVAL '3 minutes' THEN 'green'
-                WHEN timestamp > NOW() - INTERVAL '5 minutes' THEN 'yellow'
+                WHEN timestamp > NOW() AT TIME ZONE 'America/New_York - INTERVAL '3 minutes' THEN 'green'
+                WHEN timestamp > NOW() AT TIME ZONE 'America/New_York - INTERVAL '5 minutes' THEN 'yellow'
                 ELSE 'red'
-                END as visual_indicator, EXTRACT (EPOCH FROM (NOW() - timestamp))/60 as minutes_since_last_seen, EXTRACT (EPOCH FROM (NOW() - timestamp)) as seconds_since_last_seen
+                END as visual_indicator, EXTRACT (EPOCH FROM (NOW() AT TIME ZONE 'America/New_York - timestamp))/60 as minutes_since_last_seen, EXTRACT (EPOCH FROM (NOW() - timestamp)) as seconds_since_last_seen
             FROM latest_logs
                 )
             SELECT device_id,
@@ -663,7 +664,7 @@ export const getDeviceStatusIndicators = onRequest(async (req, res) => {
 // Periodic function to check device status and send visual indicators to mobile app
 // Runs every 2 minutes to update device status indicators
 export const checkDeviceStatusIndicators = onSchedule({
-    schedule: "*/2 * * * *", timeZone: "America/Toronto"
+    schedule: "*/2 * * * *", timeZone: "America/New_York"
 }, async (event) => {
     logger.info("Starting device status indicator check");
 

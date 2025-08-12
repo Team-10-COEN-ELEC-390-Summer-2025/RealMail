@@ -1,18 +1,20 @@
 # RealMail Backend API Documentation
 
 > [!WARNING]  
-> Documentation last updated on August 7th, 2025.
+> Documentation last updated on August 12th, 2025.
 
-This backend provides Firebase Cloud Functions for the RealMail smart mailbox system, handling sensor data ingestion, user authentication, device management, push notifications, device status monitoring, and visual status indicators. All HTTP endpoints expect JSON payloads unless otherwise noted.
+This backend provides Firebase Cloud Functions for the RealMail smart mailbox system, handling sensor data ingestion, user authentication, device management, push notifications, device status monitoring, real-time streaming, and visual status indicators. All HTTP endpoints expect JSON payloads unless otherwise noted.
 
 ## System Architecture
 
-- **Platform:** Firebase Cloud Functions (Node.js)
+- **Platform:** Firebase Cloud Functions (Node.js 22)
 - **Database:** PostgreSQL with connection pooling
 - **Authentication:** Firebase Admin SDK
 - **Push Notifications:** Firebase Cloud Messaging (FCM)
-- **Scheduled Tasks:** Firebase Functions v2 Scheduler
+- **Scheduled Tasks:** Firebase Functions v2 Scheduler (runs every 2 minutes)
 - **Real-time Status Monitoring:** Device heartbeat tracking with visual indicators
+- **Video Streaming:** Real-time camera streaming from IoT devices
+- **Dependencies:** TypeScript, node-fetch, socket.io, cors, dotenv
 
 ---
 
@@ -42,184 +44,115 @@ This backend provides Firebase Cloud Functions for the RealMail smart mailbox sy
   {
     "device_id": "string",
     "timeStamp": "ISO8601 string (e.g., '2025-08-07T14:30:00.000Z')",
-    "motion_detected": boolean,
+    "motion_detected": "boolean",
     "user_email": "string"
   }
   ```
 - **Response:**
   - `200 OK`: "Sensor data received and stored successfully"
-  - `400 Bad Request`: Invalid sensor data format
-  - `500 Internal Server Error`: Database insertion failed
-- **Database Table:** `sensors_data`
-- **Side Effects:** Triggers push notification to user's mobile app
+  - `400 Bad Request`: Invalid sensor data
+  - `405 Method Not Allowed`: Non-POST method
+  - `500 Internal Server Error`: Database or notification failure
+- **Database:** Inserts into `sensors_data` table
+- **Side Effects:** Automatically triggers push notification to user's mobile app
 
 ---
 
-### 3. `/handleDeviceLogs`
-**🆕 Device heartbeat and system information logging endpoint**
+### 3. `/verifyToken`
+**JWT authentication token verification**
 
 - **Method:** `POST`
-- **Purpose:** Receives device status updates including system health information from Raspberry Pi devices
-- **Request Body:**
+- **Purpose:** Verifies Firebase JWT tokens and stores user authentication data
+- **Request Body/Query Parameters:**
   ```json
   {
-    "device_id": "team10_board",
-    "user_email": "alice01@example.com", 
-    "timestamp": "2025-08-07T12:00:00Z",
-    "status": "online",
-    "system_info": {
-      "cpu_temp": 45.5,
-      "uptime_seconds": 3600,
-      "timestamp": "2025-08-07T12:00:00Z"
-    }
-  }
-  ```
-- **Response:**
-  - `200 OK`: "Device log data received and stored successfully"
-  - `400 Bad Request`: Missing required fields (device_id, user_email, timestamp, status)
-  - `500 Internal Server Error`: Database error
-- **Database Table:** `device_logs`
-- **Required Fields:** `device_id`, `user_email`, `timestamp`, `status`
-- **Optional Fields:** `system_info.cpu_temp`, `system_info.uptime_seconds`, `system_info.timestamp`
-
----
-
-### 4. `/getDeviceStatusIndicators`
-**🆕 Real-time device status with visual indicators**
-
-- **Method:** `POST`
-- **Purpose:** Retrieves current status of all user devices with visual indicators for mobile app UI
-- **Request Body:**
-  ```json
-  {
-    "user_email": "alice01@example.com"
-  }
-  ```
-- **Response:**
-  ```json
-  {
-    "user_email": "alice01@example.com",
-    "summary": {
-      "total_devices": 3,
-      "online": 2,
-      "warning": 1,
-      "offline": 0,
-      "last_updated": "2025-08-07T12:00:00.000Z"
-    },
-    "devices": [
-      {
-        "device_id": "team10_board",
-        "connection_status": "online",
-        "visual_indicator": "green",
-        "last_seen": "2025-08-07T11:58:00.000Z",
-        "minutes_since_last_seen": 2.0,
-        "cpu_temp": 45.5,
-        "uptime_seconds": 3600,
-        "raw_status": "online",
-        "health_info": {
-          "is_healthy": true,
-          "last_heartbeat": "2025-08-07T11:58:00.000Z",
-          "uptime_hours": 1
-        }
-      }
-    ]
-  }
-  ```
-
-**Visual Indicators:**
-- 🟢 **Green dot/icon** = Online (last heartbeat < 3 minutes ago)
-- 🟡 **Yellow dot/icon** = Warning (heartbeat 3-5 minutes ago)
-- 🔴 **Red dot/icon** = Offline (no heartbeat for > 5 minutes)
-
----
-
-### 5. `/verifyToken`
-**Firebase JWT authentication verification**
-
-- **Method:** `POST`
-- **Purpose:** Verifies Firebase JWT token and stores user authentication details
-- **Request Body:**
-  ```json
-  {
-    "token": "firebase_jwt_token_string",
-    "uid": "firebase_user_uid"
+    "token": "string (Firebase JWT token)",
+    "uid": "string (Firebase user UID)"
   }
   ```
 - **Response:**
   - `200 OK`: "JWT token received and saved successfully"
-  - `400 Bad Request`: Missing JWT token or user UID
-  - `500 Internal Server Error`: Authentication or database error
-- **Database Table:** `firebase_auth`
+  - `400 Bad Request`: Missing token or UID
+  - `405 Method Not Allowed`: Non-POST method
+  - `500 Internal Server Error`: Authentication failure
+- **Database:** Upserts into `firebase_auth` table
+- **Notes:** Uses Firebase Admin SDK for user verification
 
 ---
 
-### 6. `/updateSensorStatus`
+### 4. `/updateSensorStatus`
 **Device online/offline status updates**
 
 - **Method:** `POST`
-- **Purpose:** Updates device online/offline status in the database
+- **Purpose:** Records device connectivity status for monitoring
 - **Request Body:**
   ```json
   {
     "device_id": "string",
-    "status": "online|offline",
+    "status": "string ('online' or 'offline')",
     "user_email": "string"
   }
   ```
 - **Response:**
   - `200 OK`: "Sensor status checked and notifications sent successfully"
-  - `400 Bad Request`: Invalid sensor status data
-  - `500 Internal Server Error`: Database insertion failed
-- **Database Table:** `sensors_online_activity`
+  - `400 Bad Request`: Invalid status data
+  - `405 Method Not Allowed`: Non-POST method
+  - `500 Internal Server Error`: Database insertion failure
+- **Database:** Inserts into `sensors_online_activity` table with Eastern Time timestamp
 
 ---
 
-### 7. `/getDeviceRegistrationToken`
-**Device registration for push notifications**
+### 5. `/getDeviceRegistrationToken`
+**FCM token registration for push notifications**
 
 - **Method:** `POST`
-- **Purpose:** Stores Firebase Cloud Messaging (FCM) registration token for push notifications
-- **Request Body:**
+- **Purpose:** Stores Firebase Cloud Messaging tokens for push notifications
+- **Request Body/Query Parameters:**
   ```json
   {
-    "email": "user@example.com",
-    "token": "fcm_registration_token"
+    "email": "string (user email)",
+    "token": "string (FCM registration token)"
   }
   ```
 - **Response:**
   - `200 OK`: "Device registration token saved successfully"
-  - `400 Bad Request`: Missing user email or token
-  - `500 Internal Server Error`: Database error
-- **Database Table:** `firebase_auth`
+  - `400 Bad Request`: Missing email or token
+  - `405 Method Not Allowed`: Non-POST method
+  - `500 Internal Server Error`: Database save failure
+- **Database:** Updates `firebase_auth` table with upsert operation
 
 ---
 
-### 8. `/newDataNotification`
+### 6. `/newDataNotification`
 **Push notification sender**
 
 - **Method:** `POST`
-- **Purpose:** Sends push notifications to users when new sensor data is received
+- **Purpose:** Sends push notifications to mobile app when new sensor data is received
 - **Request Body:**
   ```json
   {
     "device_id": "string",
     "timeStamp": "ISO8601 string",
-    "motion_detected": boolean,
+    "motion_detected": "boolean",
     "user_email": "string"
   }
   ```
 - **Response:**
   - `200 OK`: "Notification sent successfully"
-  - `404 Not Found`: No device registration token found
-  - `500 Internal Server Error`: Notification sending failed
+  - `404 Not Found`: No FCM token found for user
+  - `500 Internal Server Error`: Messaging service failure
+- **Features:** 
+  - Formats timestamps for Eastern Time display
+  - Includes device data in notification payload
+  - Uses Firebase Cloud Messaging
 
 ---
 
-### 9. `/getSensorsWithMotionDetected`
-**Motion detection history retrieval**
+### 7. `/getSensorsWithMotionDetected`
+**Historical motion detection data**
 
 - **Method:** `POST`
-- **Purpose:** Retrieves all sensors with motion detected for a specific user
+- **Purpose:** Retrieves all sensor records with motion detected for a specific user
 - **Request Body:**
   ```json
   {
@@ -227,36 +160,40 @@ This backend provides Firebase Cloud Functions for the RealMail smart mailbox sy
   }
   ```
 - **Response:**
-  - `200 OK`: Array of sensor records with motion detected
+  - `200 OK`: Array of sensor records with motion detected (ordered by timestamp DESC)
   - `400 Bad Request`: Missing user email
-  - `500 Internal Server Error`: Database query failed
+  - `405 Method Not Allowed`: Non-POST method
+  - `500 Internal Server Error`: Database query failure
+- **Database:** Queries `sensors_data` table
 
 ---
 
-### 10. `/addNewDevice`
+### 8. `/addNewDevice`
 **Device registration**
 
 - **Method:** `POST`
-- **Purpose:** Adds a new device to the system for a user
+- **Purpose:** Registers a new IoT device for a user
 - **Request Body:**
   ```json
   {
-    "device_id": "string",
+    "device_id": "string (unique identifier)",
     "user_email": "string"
   }
   ```
 - **Response:**
   - `200 OK`: "Device added successfully"
   - `400 Bad Request`: Missing device_id or user_email
-  - `500 Internal Server Error`: Database insertion failed
+  - `405 Method Not Allowed`: Non-POST method
+  - `500 Internal Server Error`: Database insertion failure
+- **Database:** Inserts into `sensors_data` table
 
 ---
 
-### 11. `/removeDevice`
-**Device deregistration**
+### 9. `/removeDevice`
+**Device removal**
 
 - **Method:** `POST`
-- **Purpose:** Removes a device from the system
+- **Purpose:** Removes a device from user's account
 - **Request Body:**
   ```json
   {
@@ -267,12 +204,14 @@ This backend provides Firebase Cloud Functions for the RealMail smart mailbox sy
 - **Response:**
   - `200 OK`: "Device removed successfully"
   - `400 Bad Request`: Missing device_id or user_email
-  - `500 Internal Server Error`: Database deletion failed
+  - `405 Method Not Allowed`: Non-POST method
+  - `500 Internal Server Error`: Database deletion failure
+- **Database:** Deletes from `sensors_data` table
 
 ---
 
-### 12. `/getAllDevicesForUser`
-**User device listing**
+### 10. `/getAllDevicesForUser`
+**User's device list**
 
 - **Method:** `POST`
 - **Purpose:** Retrieves all devices associated with a user
@@ -283,184 +222,213 @@ This backend provides Firebase Cloud Functions for the RealMail smart mailbox sy
   }
   ```
 - **Response:**
-  - `200 OK`: Array of device objects
+  - `200 OK`: Array of device objects with `device_id`
   - `400 Bad Request`: Missing user_email
-  - `500 Internal Server Error`: Database query failed
+  - `405 Method Not Allowed`: Non-POST method
+  - `500 Internal Server Error`: Database query failure
+- **Database:** Queries distinct device_ids from `sensors_data` table
+
+---
+
+### 11. `/handleDeviceLogs`
+**Device system health logging**
+
+- **Method:** `POST`
+- **Purpose:** Receives and stores system health data from Raspberry Pi devices
+- **Request Body:**
+  ```json
+  {
+    "device_id": "string",
+    "user_email": "string",
+    "timestamp": "ISO8601 string",
+    "status": "string",
+    "system_info": {
+      "cpu_temp": "number (optional)",
+      "uptime_seconds": "number (optional)",
+      "timestamp": "ISO8601 string (optional)"
+    }
+  }
+  ```
+- **Response:**
+  - `200 OK`: "Device log data received and stored successfully"
+  - `400 Bad Request`: Missing required fields
+  - `405 Method Not Allowed`: Non-POST method
+  - `500 Internal Server Error`: Database insertion failure
+- **Database:** Inserts into `device_logs` table
+- **Features:** Tracks CPU temperature, uptime, and system timestamps
+
+---
+
+### 12. `/getDeviceStatusIndicators`
+**Real-time device status dashboard**
+
+- **Method:** `POST`
+- **Purpose:** Provides comprehensive device status with visual indicators for dashboard display
+- **Request Body:**
+  ```json
+  {
+    "user_email": "string"
+  }
+  ```
+- **Response:**
+  - `200 OK`: Detailed status response with summary and device array
+  - `400 Bad Request`: Missing user_email
+  - `405 Method Not Allowed`: Non-POST method
+  - `500 Internal Server Error`: Database query failure
+
+**Response Format:**
+```json
+{
+  "user_email": "string",
+  "summary": {
+    "total_devices": "number",
+    "online": "number",
+    "warning": "number", 
+    "offline": "number",
+    "last_updated": "ISO8601 string"
+  },
+  "devices": [
+    {
+      "device_id": "string",
+      "connection_status": "string ('online'|'warning'|'offline')",
+      "visual_indicator": "string ('green'|'yellow'|'red')",
+      "last_seen": "ISO8601 string",
+      "minutes_since_last_seen": "number",
+      "cpu_temp": "number",
+      "uptime_seconds": "number", 
+      "raw_status": "string",
+      "health_info": {
+        "is_healthy": "boolean",
+        "last_heartbeat": "ISO8601 string",
+        "uptime_hours": "number"
+      }
+    }
+  ]
+}
+```
+
+**Status Logic:**
+- **Online (Green)**: Last seen within 3 minutes
+- **Warning (Yellow)**: Last seen 3-5 minutes ago  
+- **Offline (Red)**: Last seen over 5 minutes ago
+
+---
+
+### 13. `/startStreaming/{device_id}`
+**Start camera streaming**
+
+- **Method:** `POST`
+- **Purpose:** Initiates real-time camera streaming from a specific IoT device
+- **URL Parameters:** `device_id` in path
+- **Headers:** CORS enabled for cross-origin requests
+- **Response:**
+  - `200 OK`: Streaming started successfully
+  - `400 Bad Request`: Missing device ID
+  - `404 Not Found`: Device not found
+  - `502 Bad Gateway`: Device streaming service failure
+  - `500 Internal Server Error`: Server error
+- **Features:**
+  - Looks up device IP from database
+  - Calls device's streaming API at port 8080
+  - 10-second timeout for device communication
+- **Database:** Queries `devices` table for IP address
+
+---
+
+### 14. `/stopStreaming/{device_id}`
+**Stop camera streaming**
+
+- **Method:** `POST`
+- **Purpose:** Stops camera streaming for a specific device
+- **URL Parameters:** `device_id` in path
+- **Headers:** CORS enabled for cross-origin requests
+- **Response:**
+  - `200 OK`: Streaming stopped successfully
+  - `400 Bad Request`: Missing device ID or IP
+  - `404 Not Found`: Device not found
+  - `502 Bad Gateway`: Device streaming service failure
+  - `500 Internal Server Error`: Server error
+- **Features:** Similar to start streaming but calls stop endpoint
+
+---
+
+### 15. `/getStreamingStatus/{device_id}`
+**Check streaming status**
+
+- **Method:** `GET`
+- **Purpose:** Retrieves current streaming status for a device
+- **URL Parameters:** `device_id` in path
+- **Headers:** CORS enabled for cross-origin requests
+- **Response:**
+  - `200 OK`: Status retrieved (even if device offline)
+  - `400 Bad Request`: Missing device ID
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "device_id": "string",
+  "device_ip": "string",
+  "streaming": "boolean",
+  "camera_active": "boolean",
+  "error": "string (if applicable)"
+}
+```
+
+- **Features:**
+  - 5-second timeout for status check
+  - Graceful handling of offline devices
+  - Returns status even when device unreachable
 
 ---
 
 ## Scheduled Functions
 
-### `/checkDeviceStatusIndicators`
-**🆕 Automated device status monitoring**
+### `checkDeviceStatusIndicators`
+**Automatic device health monitoring**
 
-- **Schedule:** Every 2 minutes (`*/2 * * * *`)
-- **Time Zone:** America/Toronto
-- **Purpose:** Monitors all device heartbeats and sends status updates to mobile apps
-- **Process:**
-  1. Queries latest device logs from all users
-  2. Classifies devices as online/warning/offline based on last heartbeat
-  3. Groups devices by user
-  4. Sends status payload to each user's mobile app
-  5. Logs activity for monitoring
-
-**Status Classification Logic:**
-- **Online:** Last heartbeat within 3 minutes
-- **Warning:** Last heartbeat 3-5 minutes ago  
-- **Offline:** No heartbeat for more than 5 minutes
+- **Schedule:** Runs every 2 minutes (`*/2 * * * *`)
+- **Timezone:** America/New_York
+- **Purpose:** Monitors device connectivity and health status
+- **Function:** 
+  - Queries latest device logs
+  - Classifies devices as online/warning/offline
+  - Processes status indicators for dashboard updates
+- **Database:** Queries `device_logs` table with complex status classification logic
 
 ---
 
 ## Database Schema
 
-### `device_logs` Table
-```sql
-CREATE TABLE device_logs (
-    id BIGSERIAL PRIMARY KEY,
-    device_id VARCHAR(100) NOT NULL,
-    user_email VARCHAR(255) NOT NULL,
-    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    cpu_temp DECIMAL(5,2),
-    uptime_seconds BIGINT,
-    system_timestamp TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+The API interacts with the following PostgreSQL tables:
 
-CREATE INDEX idx_device_timestamp ON device_logs (device_id, timestamp);
-CREATE INDEX idx_user_email ON device_logs (user_email);
-```
-
-### Other Tables
-- `sensors_data`: Motion sensor readings
-- `firebase_auth`: User authentication and FCM tokens
-- `sensors_online_activity`: Device status history
+- **`sensors_data`**: Stores motion detection events and device-user relationships
+- **`firebase_auth`**: Manages user authentication and FCM tokens  
+- **`sensors_online_activity`**: Tracks device online/offline status changes
+- **`device_logs`**: Stores system health data (CPU temp, uptime, etc.)
+- **`devices`**: Contains device configuration and IP addresses for streaming
 
 ---
 
-```
+## Security & Performance
 
-### Environment Variables
-- `DB_USER`: Database username
-- `DB_HOST`: Database host IP
-- `DB_NAME`: Database name
-- `DB_PASSWORD`: Database password
-- `SERVER_URL`: Firebase Functions base URL
-
----
-
-## Mobile App Integration
-
-### Reading Device Status API
-
-**To get real-time device status with visual indicators:**
-
-```javascript
-// JavaScript/React Native Example
-const getDeviceStatus = async (userEmail) => {
-  try {
-    const response = await fetch('https://us-central1-realmail-39ab4.cloudfunctions.net/getDeviceStatusIndicators', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        user_email: userEmail
-      })
-    });
-    
-    const data = await response.json();
-    
-    // Use data.summary for overview stats
-    console.log(`Total devices: ${data.summary.total_devices}`);
-    console.log(`Online: ${data.summary.online}, Warning: ${data.summary.warning}, Offline: ${data.summary.offline}`);
-    
-    // Use data.devices for individual device status
-    data.devices.forEach(device => {
-      console.log(`${device.device_id}: ${device.visual_indicator} (${device.connection_status})`);
-      // Display green/yellow/red indicator based on device.visual_indicator
-    });
-    
-  } catch (error) {
-    console.error('Error fetching device status:', error);
-  }
-};
-```
-
-**For Raspberry Pi devices sending heartbeat:**
-
-```python
-# Python example for Raspberry Pi
-import requests
-import json
-from datetime import datetime
-import psutil
-
-def send_device_heartbeat(device_id, user_email):
-    # Get system information
-    cpu_temp = get_cpu_temperature()  # Your implementation
-    uptime_seconds = int(psutil.boot_time())
-    
-    payload = {
-        "device_id": device_id,
-        "user_email": user_email,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "status": "online",
-        "system_info": {
-            "cpu_temp": cpu_temp,
-            "uptime_seconds": uptime_seconds,
-            "timestamp": datetime.utcnow().isoformat() + "Z"
-        }
-    }
-    
-    response = requests.post(
-        'https://us-central1-realmail-39ab4.cloudfunctions.net/handleDeviceLogs',
-        headers={'Content-Type': 'application/json'},
-        json=payload
-    )
-    
-    return response.status_code == 200
-```
-
----
-
-## Error Handling
-
-All endpoints return appropriate HTTP status codes:
-
-- **200 OK**: Request successful
-- **400 Bad Request**: Invalid request data or missing required fields
-- **404 Not Found**: Resource not found (e.g., no registration token)
-- **405 Method Not Allowed**: Incorrect HTTP method used
-- **500 Internal Server Error**: Server-side error (database, authentication, etc.)
-
-Error responses include descriptive messages to aid in debugging.
-
----
-
-## Monitoring and Logging
-
-All functions use Firebase Functions Logger with structured logging:
-- Request/response logging
-- Error tracking with stack traces
-- Performance metrics
-- Database query logging
-- Scheduled function execution tracking
-
-Use Firebase Console to monitor function execution, errors, and performance metrics.
+- **Connection Pooling:** PostgreSQL connection pool for efficient database access
+- **Error Handling:** Comprehensive error logging and user-friendly responses
+- **Timezone Support:** All timestamps use America/New_York timezone
+- **CORS Support:** Cross-origin requests enabled for streaming endpoints
+- **Timeout Management:** Configurable timeouts for external API calls
+- **Input Validation:** Strict validation of all request parameters
+- **Firebase Integration:** Uses Firebase Admin SDK for secure authentication
 
 ---
 
 ## Deployment
 
-```bash
-# Install dependencies
-cd functions
-npm install
+- **Runtime:** Node.js 22
+- **Build Process:** TypeScript compilation with ESLint
+- **Commands:**
+  - `npm run build`: Compile TypeScript and run linting
+  - `npm run deploy`: Deploy to Firebase Functions
+  - `npm run serve`: Local development with Firebase emulators
 
-# Deploy all functions
-firebase deploy --only functions
-
-# Deploy specific function
-firebase deploy --only functions:handleDeviceLogs
-```
+---
