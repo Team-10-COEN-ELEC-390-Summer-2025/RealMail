@@ -79,7 +79,7 @@ class PiCameraStreamer:
                 'image': b64_jpeg,
                 'timestamp': time.time()
             }
-            asyncio.run(self.sio.emit('stream', data))
+            asyncio.run(self.sio.emit('video_frame', data))
             time.sleep(1 / self.fps)
         self.picam2.stop()
         logger.info("Camera stopped streaming.")
