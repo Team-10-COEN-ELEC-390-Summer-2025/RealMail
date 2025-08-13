@@ -7,7 +7,7 @@ import os
 from typing import Dict
 import logging
 import socketio
-
+import json
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("webrtc-server")
@@ -198,7 +198,8 @@ async def get_streamer_with_device_id(device_id: str):
         # Inject device_id into the HTML - replace the placeholder
         # Look for the exact pattern in the HTML file
         old_line = "        const DEVICE_ID = DEVICE_ID || 'default-device';"
-        new_line = f"        const DEVICE_ID = '{device_id}';"
+        # Escape device_id for safe JavaScript embedding
+        new_line = f"        const DEVICE_ID = {json.dumps(device_id)};"
         
         html_content = html_content.replace(old_line, new_line)
         
