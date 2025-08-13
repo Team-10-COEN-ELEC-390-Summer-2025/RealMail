@@ -1,6 +1,6 @@
 #!/bin/bash
 
-``# WebRTC Server Startup Script
+# WebRTC Server Startup Script
 echo "Starting WebRTC Server..."
 
 # Check if running in Docker
