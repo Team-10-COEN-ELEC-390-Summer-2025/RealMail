@@ -47,7 +47,7 @@ class PiCameraStreamer:
         @self.sio.event
         async def connect():
             logger.info(f"Connected to server at {self.server_url}")
-            await self.sio.emit('register', {'device_id': self.device_id})
+            await self.sio.emit('register', {'type': 'camera', 'device_id': self.device_id})
             self.streaming = True
             Thread(target=self.stream_frames, daemon=True).start()
 
