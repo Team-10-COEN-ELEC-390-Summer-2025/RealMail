@@ -226,7 +226,7 @@ async def get_android_with_device_id(device_id: str):
         # Inject device_id into the HTML - replace the placeholder
         html_content = html_content.replace(
             'const DEVICE_ID = DEVICE_ID || \'default-device\';',
-            f'const DEVICE_ID = "{device_id}";'
+            f'const DEVICE_ID = {json.dumps(device_id)};'
         )
 
         return HTMLResponse(content=html_content)
