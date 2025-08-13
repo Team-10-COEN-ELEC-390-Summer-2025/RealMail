@@ -93,7 +93,7 @@ def main():
     """Main function to run the Pi Camera streamer"""
     parser = argparse.ArgumentParser(description='Raspberry Pi Camera WebRTC Streamer')
     parser.add_argument('--server', required=True, help='WebRTC server URL (e.g., https://127.0.0.1:8443)')
-    parser.add_argument('--team10_board', required=True, help='Device ID for this Pi camera')
+    parser.add_argument('--device-id', required=True, help='Device ID for this Pi camera')
     parser.add_argument('--width', type=int, default=1280, help='Camera resolution width')
     parser.add_argument('--height', type=int, default=720, help='Camera resolution height')
     parser.add_argument('--fps', type=int, default=30, help='Frames per second')
@@ -101,7 +101,7 @@ def main():
 
     streamer = PiCameraStreamer(
         server_url=args.server,
-        device_id=args.team10_board,
+        device_id=args.device_id,
         resolution=(args.width, args.height),
         fps=args.fps
     )
