@@ -183,7 +183,7 @@ class WebRTCClient {
     }
 
     displayVideoFrame(data) {
-        """Display video frame from Pi Camera"""
+        /* Display video frame from Pi Camera */
         try {
             if (this.remoteVideo && data.frame) {
                 // Create image element to display base64 frame
