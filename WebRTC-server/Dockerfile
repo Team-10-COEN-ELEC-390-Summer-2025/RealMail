@@ -9,18 +9,32 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     curl \
+    libcap-dev \
+    libglib2.0-dev \
+    libgtk-3-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev \
+    libv4l-dev \
+    libxvidcore-dev \
+    libx264-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libatlas-base-dev \
+    gfortran \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better Docker layer caching
-COPY requirements.txt .
+COPY requirements.txt ./
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code
-COPY main.py .
-COPY src/ ./src/
+# Copy all application files
+COPY . .
 
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash app \

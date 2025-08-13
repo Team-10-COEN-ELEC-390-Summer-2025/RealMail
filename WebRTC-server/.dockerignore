@@ -1,0 +1,51 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Development files
+firebase-debug.log
+*.log
+
+# Build artifacts
+build/
+dist/
+
+# Documentation
+README.md
+
+# Certificates (if they should be secret)
+# cert.pem
+# key.pem
+
+# Cloud files
+.gcloudignore
+cloudbuild.yaml
+.firebaserc
+firebase.json

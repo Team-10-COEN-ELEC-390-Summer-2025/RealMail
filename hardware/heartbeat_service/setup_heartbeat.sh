@@ -31,21 +31,21 @@ print_error() {
 
 # Check if running as root
 if [[ $EUID -eq 0 ]]; then
-   print_error "This script should not be run as root. Run as pi user and it will use sudo when needed."
+   print_error "This script should not be run as root. Run as team10 user and it will use sudo when needed."
    exit 1
 fi
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-HARDWARE_DIR="$SCRIPT_DIR"
+HEARTBEAT_DIR="$SCRIPT_DIR"
 
 print_status "Setting up Raspberry Pi Heartbeat Service..."
-print_status "Hardware directory: $HARDWARE_DIR"
+print_status "Heartbeat service directory: $HEARTBEAT_DIR"
 
 # Check if required files exist
 REQUIRED_FILES=("heartbeat_service.py" "heartbeat.service" "device_info.txt")
 for file in "${REQUIRED_FILES[@]}"; do
-    if [ ! -f "$HARDWARE_DIR/$file" ]; then
+    if [ ! -f "$HEARTBEAT_DIR/$file" ]; then
         print_error "Required file not found: $file"
         exit 1
     fi
@@ -53,28 +53,47 @@ done
 
 print_success "All required files found"
 
-# Install Python dependencies
-print_status "Installing Python dependencies..."
-if [ -f "$HARDWARE_DIR/requirements.txt" ]; then
-    pip3 install -r "$HARDWARE_DIR/requirements.txt"
+# Create virtual environment with system site packages access
+VENV_DIR="$HEARTBEAT_DIR/venv"
+print_status "Creating virtual environment with system site packages..."
+if [ ! -d "$VENV_DIR" ]; then
+    python3 -m venv --system-site-packages "$VENV_DIR"
+    print_success "Virtual environment created at $VENV_DIR"
 else
-    print_status "Installing requests module..."
-    pip3 install requests
+    print_status "Virtual environment already exists at $VENV_DIR"
 fi
 
+# Activate virtual environment and install dependencies
+print_status "Installing Python dependencies in virtual environment..."
+source "$VENV_DIR/bin/activate"
+
+if [ -f "$HEARTBEAT_DIR/../requirements.txt" ]; then
+    pip install -r "$HEARTBEAT_DIR/../requirements.txt"
+elif [ -f "$HEARTBEAT_DIR/requirements.txt" ]; then
+    pip install -r "$HEARTBEAT_DIR/requirements.txt"
+else
+    print_status "Installing requests module..."
+    pip install requests
+fi
+
+deactivate
+print_success "Dependencies installed in virtual environment"
+
 # Make the Python script executable
-chmod +x "$HARDWARE_DIR/heartbeat_service.py"
+chmod +x "$HEARTBEAT_DIR/heartbeat_service.py"
 print_success "Made heartbeat_service.py executable"
 
 # Create log directory if it doesn't exist
 sudo mkdir -p /var/log
 sudo touch /var/log/heartbeat_service.log
-sudo chown pi:pi /var/log/heartbeat_service.log
+sudo chown team10:team10 /var/log/heartbeat_service.log
 print_success "Created log file"
 
-# Update the service file with correct paths
+# Update the service file with correct paths and virtual environment
 TEMP_SERVICE="/tmp/heartbeat.service"
-sed "s|/home/pi/RealMail/hardware|$HARDWARE_DIR|g" "$HARDWARE_DIR/heartbeat.service" > "$TEMP_SERVICE"
+sed -e "s|/home/team10/RealMail/hardware/heartbeat_service|$HEARTBEAT_DIR|g" \
+    -e "s|ExecStart=.*|ExecStart=$VENV_DIR/bin/python $HEARTBEAT_DIR/heartbeat_service.py|g" \
+    "$HEARTBEAT_DIR/heartbeat.service" > "$TEMP_SERVICE"
 
 # Copy service file to systemd directory
 print_status "Installing systemd service..."
@@ -90,9 +109,9 @@ print_success "Heartbeat service installed and enabled"
 
 # Check device configuration
 print_status "Checking device configuration..."
-if grep -q "user@example.com" "$HARDWARE_DIR/device_info.txt"; then
+if grep -q "user@example.com" "$HEARTBEAT_DIR/device_info.txt"; then
     print_warning "Device configuration contains default values!"
-    print_warning "Please edit $HARDWARE_DIR/device_info.txt with your actual:"
+    print_warning "Please edit $HEARTBEAT_DIR/device_info.txt with your actual:"
     print_warning "  - DEVICE_ID: Unique identifier for your device"
     print_warning "  - USER_EMAIL: Associated user email"
     print_warning "  - HEARTBEAT_URL: Your Firebase Cloud Function endpoint"
@@ -104,10 +123,10 @@ else
     print_success "Device configuration appears to be customized"
 fi
 
-# Test the service
+# Test the service with virtual environment
 print_status "Testing the heartbeat service..."
-if python3 "$HARDWARE_DIR/heartbeat_service.py" --help > /dev/null 2>&1 || true; then
-    print_success "Python script can be executed"
+if "$VENV_DIR/bin/python" "$HEARTBEAT_DIR/heartbeat_service.py" --help > /dev/null 2>&1 || true; then
+    print_success "Python script can be executed with virtual environment"
 else
     print_warning "Python script test had issues, but continuing..."
 fi
@@ -142,7 +161,7 @@ print_status "  Disable service:        sudo systemctl disable heartbeat.service
 print_status "  View log file:          tail -f /var/log/heartbeat_service.log"
 echo
 
-if grep -q "user@example.com" "$HARDWARE_DIR/device_info.txt"; then
+if grep -q "user@example.com" "$HEARTBEAT_DIR/device_info.txt"; then
     print_warning "IMPORTANT: Don't forget to update device_info.txt with your actual configuration!"
 fi
 

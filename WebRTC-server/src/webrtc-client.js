@@ -169,10 +169,52 @@ class WebRTCClient {
             }
         });
 
+        this.socket.on('video_frame', async (data) => {
+            console.log('Received video frame');
+            if (!this.isCamera) {
+                this.displayVideoFrame(data);
+            }
+        });
+
         this.socket.on('connect_error', (error) => {
             console.error('Connection error:', error);
             this.updateStatus('Connection error - retrying...');
         });
+    }
+
+    displayVideoFrame(data) {
+        """Display video frame from Pi Camera"""
+        try {
+            if (this.remoteVideo && data.frame) {
+                // Create image element to display base64 frame
+                const img = new Image();
+                img.onload = () => {
+                    // Create canvas to display the image
+                    let canvas = document.getElementById('remoteCanvas');
+                    if (!canvas) {
+                        canvas = document.createElement('canvas');
+                        canvas.id = 'remoteCanvas';
+                        canvas.style.width = '100%';
+                        canvas.style.height = '100%';
+                        canvas.style.objectFit = 'cover';
+                        
+                        // Replace video element with canvas for Pi Camera streams
+                        this.remoteVideo.style.display = 'none';
+                        this.remoteVideo.parentNode.insertBefore(canvas, this.remoteVideo);
+                    }
+                    
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    this.updateStatus('Receiving Pi Camera stream');
+                };
+                img.src = 'data:image/jpeg;base64,' + data.frame;
+            }
+        } catch (error) {
+            console.error('Error displaying video frame:', error);
+        }
     }
 
     async toggleCamera() {
@@ -183,10 +225,11 @@ class WebRTCClient {
         }
     }
 
-    async startAsCamera() {
+    async startAsCamera(deviceId = null) {
         try {
-            console.log('Starting as camera...');
+            console.log('Starting as camera with device ID:', deviceId);
             this.updateStatus('Requesting camera access...');
+            this.deviceId = deviceId;
 
             // Check permissions first
             if (!this.checkWebRTCSupport()) {
@@ -204,14 +247,16 @@ class WebRTCClient {
 
             this.isCamera = true;
             this.isStreaming = true;
-            this.socket.emit('register', 'camera');
+
+            // Send device ID with registration
+            this.socket.emit('register', { type: 'camera', device_id: deviceId });
 
             if (this.cameraBtn) {
                 this.cameraBtn.textContent = 'Stop Camera';
                 this.cameraBtn.style.backgroundColor = '#dc3545';
             }
 
-            this.updateStatus('Camera started - waiting for viewers...');
+            this.updateStatus(`Camera started for device ${deviceId} - waiting for viewers...`);
             await this.createPeerConnection();
 
         } catch (error) {
@@ -303,14 +348,17 @@ class WebRTCClient {
         }
     }
 
-    async startAsViewer() {
+    async startAsViewer(deviceId = null) {
         try {
-            console.log('Starting as viewer...');
-            this.updateStatus('Connecting as viewer...');
+            console.log('Starting as viewer for device ID:', deviceId);
+            this.updateStatus(`Connecting to device ${deviceId}...`);
+            this.deviceId = deviceId;
 
             this.isCamera = false;
-            this.socket.emit('register', 'viewer');
-            this.updateStatus('Registered as viewer - looking for camera...');
+
+            // Send device ID with registration
+            this.socket.emit('register', { type: 'viewer', device_id: deviceId });
+            this.updateStatus(`Registered as viewer for device ${deviceId} - looking for camera...`);
 
             await this.createPeerConnection();
 

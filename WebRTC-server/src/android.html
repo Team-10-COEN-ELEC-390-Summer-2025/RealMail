@@ -167,11 +167,15 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="/webrtc-client.js"></script>
     <script>
+        // Device ID will be injected by the server
+        const DEVICE_ID = DEVICE_ID || 'default-device';
+
         class AndroidViewer {
             constructor() {
                 this.client = null;
                 this.isConnected = false;
                 this.isFullscreen = false;
+                this.deviceId = DEVICE_ID;
 
                 this.connectBtn = document.getElementById('connectBtn');
                 this.fullscreenBtn = document.getElementById('fullscreenBtn');
@@ -210,7 +214,7 @@
                 });
 
                 // Auto-connect when page loads
-                this.updateStatus('Auto-connecting to camera...');
+                this.updateStatus(`Auto-connecting to device: ${this.deviceId}...`);
                 setTimeout(() => {
                     this.connect();
                 }, 1000); // Small delay to ensure everything is loaded
@@ -227,7 +231,7 @@
             async connect() {
                 try {
                     this.showLoading(true);
-                    this.updateStatus('Connecting to camera...');
+                    this.updateStatus(`Connecting to device: ${this.deviceId}...`);
 
                     const socketUrl = window.location.origin;
                     this.client = new WebRTCClient(socketUrl);
@@ -239,8 +243,8 @@
                         this.updateStatus(message);
                     };
 
-                    // Start as viewer
-                    await this.client.startAsViewer();
+                    // Start as viewer with device ID
+                    await this.client.startAsViewer(this.deviceId);
 
                     this.isConnected = true;
                     this.connectBtn.classList.add('active');
