@@ -223,10 +223,14 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="/webrtc-client.js"></script>
     <script>
+        // Device ID will be injected by the server
+        const DEVICE_ID = DEVICE_ID || 'default-device';
+
         class CameraStreamer {
             constructor() {
                 this.client = null;
                 this.isStreaming = false;
+                this.deviceId = DEVICE_ID;
 
                 this.startBtn = document.getElementById('startBtn');
                 this.stopBtn = document.getElementById('stopBtn');
@@ -249,7 +253,7 @@
                 this.startBtn.addEventListener('click', () => this.startStreaming());
                 this.stopBtn.addEventListener('click', () => this.stopStreaming());
 
-                this.updateStatus('Ready to start streaming');
+                this.updateStatus(`Ready to start streaming for device: ${this.deviceId}`);
             }
 
             async startStreaming() {
@@ -282,15 +286,15 @@
                         }
                     });
 
-                    // Start as camera
-                    await this.client.startAsCamera();
+                    // Start as camera with device ID
+                    await this.client.startAsCamera(this.deviceId);
 
                     this.isStreaming = true;
                     this.startBtn.classList.add('hidden');
                     this.stopBtn.classList.remove('hidden');
                     this.videoOverlay.classList.add('hidden');
 
-                    this.updateStatus('🔴 Live - Broadcasting to viewers', 'success');
+                    this.updateStatus(`🔴 Live - Broadcasting device ${this.deviceId} to viewers`, 'success');
 
                 } catch (error) {
                     console.error('Error starting streaming:', error);

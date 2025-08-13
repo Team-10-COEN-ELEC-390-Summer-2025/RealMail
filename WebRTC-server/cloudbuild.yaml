@@ -2,11 +2,11 @@ steps:
   # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/camera-webrtc:$BUILD_ID', '.']
-
+  
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/camera-webrtc:$BUILD_ID']
-
+  
   # Deploy container image to Cloud Run
   - name: 'gcr.io/cloud-builders/gcloud'
     args:

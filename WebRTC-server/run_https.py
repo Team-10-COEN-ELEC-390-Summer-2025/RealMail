@@ -1,6 +1,6 @@
 import uvicorn
 import os
-from main import app
+from main import socket_app  # Import the combined Socket.IO + FastAPI app instead of just app
 
 if __name__ == "__main__":
     # Path to your SSL certificates
@@ -49,19 +49,19 @@ if __name__ == "__main__":
     host = "127.0.0.1"  # Using localhost instead of 0.0.0.0 for better browser compatibility
     port = 8443
 
-    print(f"Starting HTTPS server at https://{host}:{port}")
+    print(f"Starting HTTPS server with Socket.IO at https://{host}:{port}")
     print(f"Note: Use 'localhost:{port}' in your browser, not the IP address")
 
     try:
-        # Run the server with SSL
+        # Run the combined Socket.IO + FastAPI server with SSL
         uvicorn.run(
-            "main:app",
+            socket_app,  # Use the combined app that includes Socket.IO
             host=host,
             port=port,
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
-            reload=True,
-            log_level="info"
+            log_level="info",
+            access_log=True
         )
     except Exception as e:
         print(f"Error starting the server: {e}")
